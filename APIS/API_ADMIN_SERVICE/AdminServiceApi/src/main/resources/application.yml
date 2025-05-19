@@ -1,0 +1,144 @@
+# ConfiguraciOn principal
+spring:
+  application:
+    name: AdminServiceApi
+
+  # ConfiguraciOn de base de datos
+  datasource:
+    url: jdbc:postgresql://localhost:5432/api_admin_service
+    username: postgres
+    password: 12345
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 60000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  # ConfiguraciOn JPA
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+          time_zone: UTC
+    show-sql: false
+
+  # ConfiguraciOn de respuesta
+  server:
+    compression:
+      enabled: true
+      mime-types: application/json,application/xml,text/html,text/xml,text/plain
+      min-response-size: 2048
+
+  # Manejo de archivos
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  # Jackson JSON
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: NON_NULL
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+# CConfiguraciOn del servidor
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never
+    include-exception: false
+
+# Clientes Feign para integracion con otros servicios
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+  httpclient:
+    enabled: true
+    max-connections: 200
+    max-connections-per-route: 50
+
+# URLs de servicios externos
+app:
+  services:
+    identity-url: ${IDENTITY_SERVICE_URL:http://localhost:8080}
+    document-url: ${DOCUMENT_SERVICE_URL:http://localhost:8082}
+    provider-url: ${PROVIDER_SERVICE_URL:http://localhost:8083}
+    document-processing-url: ${DOCUMENT_PROCESSING_URL:http://localhost:8090}
+    mailer-send-url: ${MAILER_SEND_URL:http://localhost:8095}
+
+  # Configuracion JWT
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:86400000} # 24 horas en milisegundos
+      issuer: admin-service
+
+  # Configuracion de tareas programadas
+  scheduler:
+    module-expiration-check: 0 0 1 * * * # 1:00 AM todos los d�as
+    notification-retry: 0 0/30 * * * * # Cada 30 minutos
+    temp-file-cleanup: 0 0 2 * * * # 2:00 AM todos los d�as
+
+# Configuracion de actuator para monitoreo
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    git:
+      mode: full
+    build:
+      enabled: true
+    env:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Configuracion de Open API (Swagger)
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tagsSorter: alpha
+    operationsSorter: method
+  packages-to-scan: com.netdatel.admin.controller
+  show-actuator: true
+
+# Configuracion de logging
+logging:
+  level:
+    root: INFO
+    com.netdatel: ${LOG_LEVEL:INFO}
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
+    org.springframework.cloud.openfeign: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:/logs/admin-service.log}
+    max-size: 10MB
+    max-history: 10
