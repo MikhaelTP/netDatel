@@ -1,0 +1,67 @@
+# src/main/resources/application.yml
+server:
+  port: 8083
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: DocumentServiceAPI
+  datasource:
+    url: jdbc:postgresql://localhost:5432/api_document_service
+    username: postgres
+    password: 12345
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+#minio:
+ # url: http://localhost:9000
+  #access-key: minioadmin
+  #secret-key: minioadmin
+  #bucket-name: document-bucket
+  #secure: false
+
+
+  # jwt:
+  # public-key: classpath:public_key.pem
+
+logging:
+  level:
+    root: INFO
+    com.netdatel: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
