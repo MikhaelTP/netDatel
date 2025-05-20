@@ -16,29 +16,27 @@ import java.util.Base64;
 
 @ConfigurationProperties(prefix = "jwt")
 public class JwtClientProperties {
-    private String publicKey;
+    private String publicKeyPath;  // Cambiado de publicKey a publicKeyPath
+    private Key publicKey; // Añadido para almacenar la clave ya procesada
 
     @PostConstruct
     public void init() throws Exception {
         // Si la clave pública se proporciona como un recurso classpath, cargarla
-        if (publicKey != null && publicKey.startsWith("classpath:")) {
-            String path = publicKey.substring("classpath:".length());
+        if (publicKeyPath != null && publicKeyPath.startsWith("classpath:")) {
+            String path = publicKeyPath.substring("classpath:".length());
             Resource resource = new ClassPathResource(path);
             try (Reader reader = new InputStreamReader(resource.getInputStream())) {
                 char[] keyChars = new char[(int) resource.contentLength()];
                 reader.read(keyChars);
-                publicKey = new String(keyChars);
+                String publicKeyPEM = new String(keyChars);
+                this.publicKey = convertStringToPublicKey(publicKeyPEM);
             }
         }
     }
 
-    public Key getPublicKey() throws Exception {
-        if (publicKey == null || publicKey.isEmpty()) {
-            throw new IllegalStateException("Public key is not configured");
-        }
-
+    private Key convertStringToPublicKey(String publicKeyPEM) throws Exception {
         // Eliminar encabezados y pies PEM si existen
-        String publicKeyContent = publicKey
+        String publicKeyContent = publicKeyPEM
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
                 .replaceAll("\\s", "");
@@ -47,5 +45,12 @@ public class JwtClientProperties {
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         return keyFactory.generatePublic(keySpec);
+    }
+
+    public Key getPublicKey() throws Exception {
+        if (publicKey == null) {
+            throw new IllegalStateException("Public key is not configured");
+        }
+        return publicKey;
     }
 }
