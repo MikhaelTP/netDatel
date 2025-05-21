@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 // src/main/java/com/netdatel/document/controller/FolderController.java
 @RestController
 @RequestMapping("/api/folders")
+@CrossOrigin(origins = "http://localhost:3000")
 @RequiredArgsConstructor
 @Tag(name = "Folders", description = "API para gestionar carpetas")
 public class FolderController {

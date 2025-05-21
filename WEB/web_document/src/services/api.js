@@ -1,7 +1,7 @@
 // src/services/api.js
 
 // URL base de la API
-const API_BASE_URL = 'https://localhost:8443/api';
+const API_BASE_URL = 'https://localhost:8083/api';
 
 // Función para realizar llamadas a la API
 const apiCall = async (endpoint, method = 'GET', data = null) => {

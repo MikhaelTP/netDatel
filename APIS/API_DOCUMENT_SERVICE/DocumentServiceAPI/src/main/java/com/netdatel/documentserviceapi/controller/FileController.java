@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Files", description = "API para gestionar archivos")
 public class FileController {
     private final FileService fileService;

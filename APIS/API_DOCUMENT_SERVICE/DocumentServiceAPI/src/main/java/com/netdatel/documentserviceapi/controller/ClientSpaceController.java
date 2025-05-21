@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/client-spaces")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "https://localhost:3000")
 @Tag(name = "Client Spaces", description = "API para gestionar espacios de clientes")
 public class ClientSpaceController {
     private final ClientSpaceService clientSpaceService;

@@ -21,7 +21,7 @@ public class JwtClientProperties {
 
     @PostConstruct
     public void init() throws Exception {
-        // Si la clave pública se proporciona como un recurso classpath, cargarla
+        // Cargar la clave pública desde el archivo
         if (publicKeyPath != null && publicKeyPath.startsWith("classpath:")) {
             String path = publicKeyPath.substring("classpath:".length());
             Resource resource = new ClassPathResource(path);
@@ -52,5 +52,14 @@ public class JwtClientProperties {
             throw new IllegalStateException("Public key is not configured");
         }
         return publicKey;
+    }
+
+    // Getter y setter para publicKeyPath
+    public String getPublicKeyPath() {
+        return publicKeyPath;
+    }
+
+    public void setPublicKeyPath(String publicKeyPath) {
+        this.publicKeyPath = publicKeyPath;
     }
 }

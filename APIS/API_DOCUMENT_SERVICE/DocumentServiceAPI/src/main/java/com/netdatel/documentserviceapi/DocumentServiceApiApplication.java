@@ -1,8 +1,10 @@
 package com.netdatel.documentserviceapi;
 
 
+import com.netdatel.documentserviceapi.config.MinioProperties;
 import com.netdatel.documentserviceapi.service.StorageService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,17 +23,28 @@ public class DocumentServiceApiApplication {
     }
 
     @Bean
-    public CommandLineRunner init(StorageService storageService) {
+    public CommandLineRunner init(StorageService storageService,
+                                  @Autowired(required = false) MinioProperties minioProperties) {
         return args -> {
             log.info("Initializing Document Service...");
 
-            // Verificar y crear bucket de MinIO si no existe
-            if (!storageService.bucketExists("document-bucket")) {
-                log.info("Creating MinIO bucket: document-bucket");
-                storageService.createBucket("document-bucket");
-            }
+            try {
+                // Usar el nombre del bucket desde las propiedades si está disponible
+                String bucketName = (minioProperties != null) ?
+                        minioProperties.getBucketName() : "document-bucket";
 
-            log.info("Document Service initialized successfully");
+                // Verificar y crear bucket de MinIO si no existe
+                if (!storageService.bucketExists(bucketName)) {
+                    log.info("Creating MinIO bucket: {}", bucketName);
+                    storageService.createBucket(bucketName);
+                }
+
+                log.info("Document Service initialized successfully");
+            } catch (Exception e) {
+                log.error("Error initializing storage service: {}", e.getMessage(), e);
+                // Dependiendo de la gravedad, podrías lanzar una RuntimeException
+                // para detener la aplicación si es crítico
+            }
         };
     }
 }

@@ -12,6 +12,8 @@ server:
     key-alias: miapi
 
 spring:
+  profiles:
+    active: minio
   application:
     name: DocumentServiceAPI
   datasource:
@@ -39,12 +41,13 @@ spring:
 jwt:
   public-key-path: classpath:public_key.pem  # Cambiado para usar el archivo existente
 
-#minio:
- # url: http://localhost:9000
-  #access-key: minioadmin
-  #secret-key: minioadmin
-  #bucket-name: document-bucket
-  #secure: false
+minio:
+  enabled: true
+  url: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: document-bucket
+  secure: false
 
 
 

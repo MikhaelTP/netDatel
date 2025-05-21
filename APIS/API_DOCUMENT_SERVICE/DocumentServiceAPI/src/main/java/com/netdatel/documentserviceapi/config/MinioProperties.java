@@ -11,4 +11,5 @@ public class MinioProperties {
     private String secretKey;
     private String bucketName;
     private boolean secure;
+    private boolean enabled;
 }

@@ -66,13 +66,13 @@ function App() {
     const loadClientSpaces = async () => {
       try {
         // Descomentar para usar la API real:
-        // const spaces = await api.getClientSpaces();
+        const spaces = await api.getClientSpaces();
         
         // Datos simulados para desarrollo:
-        const spaces = [
-          { id: 1, clientId: 101, moduleId: 1, storagePath: '/clients/101/module_1', totalQuotaBytes: 1073741824, usedBytes: 52428800, isActive: true },
-          { id: 2, clientId: 102, moduleId: 2, storagePath: '/clients/102/module_2', totalQuotaBytes: 2147483648, usedBytes: 104857600, isActive: true }
-        ];
+        // const spaces = [
+        //   { id: 1, clientId: 101, moduleId: 1, storagePath: '/clients/101/module_1', totalQuotaBytes: 1073741824, usedBytes: 52428800, isActive: true },
+        //   { id: 2, clientId: 102, moduleId: 2, storagePath: '/clients/102/module_2', totalQuotaBytes: 2147483648, usedBytes: 104857600, isActive: true }
+        // ];
         
         setClientSpaces(spaces);
         if (spaces.length > 0) {
@@ -111,14 +111,14 @@ function App() {
   const loadRootFolders = async () => {
     try {
       // Descomentar para usar la API real:
-      // const rootFolders = await api.getRootFolders(selectedClientSpace.id);
+      const rootFolders = await api.getRootFolders(selectedClientSpace.id);
       
       // Datos simulados para desarrollo:
-      const rootFolders = [
-        { id: 1, name: 'Documentos', path: '/Documentos', parentId: null, isActive: true },
-        { id: 2, name: 'Contratos', path: '/Contratos', parentId: null, isActive: true },
-        { id: 3, name: 'Facturas', path: '/Facturas', parentId: null, isActive: true }
-      ];
+      // const rootFolders = [
+      //   { id: 1, name: 'Documentos', path: '/Documentos', parentId: null, isActive: true },
+      //   { id: 2, name: 'Contratos', path: '/Contratos', parentId: null, isActive: true },
+      //   { id: 3, name: 'Facturas', path: '/Facturas', parentId: null, isActive: true }
+      // ];
       
       setFolders(rootFolders);
       setBreadcrumb([{ id: null, name: 'Raíz', path: '/' }]);
@@ -132,13 +132,13 @@ function App() {
   const loadSubfolders = async (folderId) => {
     try {
       // Descomentar para usar la API real:
-      // const subfolders = await api.getSubfolders(folderId);
+      const subfolders = await api.getSubfolders(folderId);
       
       // Datos simulados para desarrollo:
-      const subfolders = [
-        { id: 11, name: 'Legales', path: '/Documentos/Legales', parentId: 1, isActive: true },
-        { id: 12, name: 'Marketing', path: '/Documentos/Marketing', parentId: 1, isActive: true }
-      ];
+      // const subfolders = [
+      //   { id: 11, name: 'Legales', path: '/Documentos/Legales', parentId: 1, isActive: true },
+      //   { id: 12, name: 'Marketing', path: '/Documentos/Marketing', parentId: 1, isActive: true }
+      // ];
       
       // Actualizamos el estado para mostrar las subcarpetas
       setFolders(prevFolders => {
@@ -204,17 +204,17 @@ function App() {
       };
       
       // Descomentar para usar la API real:
-      // const createdFolder = await api.createFolder(data);
+      const createdFolder = await api.createFolder(data);
       
       // Simulación para desarrollo:
-      const createdFolder = { 
-        ...data, 
-        id: Math.floor(Math.random() * 1000),
-        path: selectedFolder 
-          ? `${selectedFolder.path}/${newFolderName}` 
-          : `/${newFolderName}`,
-        isActive: true
-      };
+      // const createdFolder = { 
+      //   ...data, 
+      //   id: Math.floor(Math.random() * 1000),
+      //   path: selectedFolder 
+      //     ? `${selectedFolder.path}/${newFolderName}` 
+      //     : `/${newFolderName}`,
+      //   isActive: true
+      // };
       
       // Actualizamos la lista de carpetas
       if (selectedFolder) {
@@ -242,47 +242,47 @@ function App() {
   const loadFiles = async (folderId) => {
     try {
       // Descomentar para usar la API real:
-      // const folderFiles = await api.getFolderFiles(folderId);
+      const folderFiles = await api.getFolderFiles(folderId);
       
       // Datos simulados para desarrollo:
-      const folderFiles = [
-        { 
-          id: 101, 
-          name: 'informe.pdf', 
-          originalName: 'informe_2025.pdf', 
-          fileSize: 2048576, 
-          mimeType: 'application/pdf', 
-          status: 'ACTIVE', 
-          viewStatus: 'NEW',
-          viewStatusColor: 'BLUE',
-          uploadDate: '2025-05-10T14:30:00',
-          version: 1
-        },
-        { 
-          id: 102, 
-          name: 'presentacion.pptx', 
-          originalName: 'presentacion_mayo.pptx', 
-          fileSize: 3145728, 
-          mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 
-          status: 'ACTIVE', 
-          viewStatus: 'VIEWED',
-          viewStatusColor: 'AMBER',
-          uploadDate: '2025-05-11T09:15:00',
-          version: 1
-        },
-        { 
-          id: 103, 
-          name: 'datos.xlsx', 
-          originalName: 'datos_financieros.xlsx', 
-          fileSize: 1048576, 
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
-          status: 'ACTIVE', 
-          viewStatus: 'DOWNLOADED',
-          viewStatusColor: 'GREEN',
-          uploadDate: '2025-05-12T11:45:00',
-          version: 2
-        }
-      ];
+      // const folderFiles = [
+      //   { 
+      //     id: 101, 
+      //     name: 'informe.pdf', 
+      //     originalName: 'informe_2025.pdf', 
+      //     fileSize: 2048576, 
+      //     mimeType: 'application/pdf', 
+      //     status: 'ACTIVE', 
+      //     viewStatus: 'NEW',
+      //     viewStatusColor: 'BLUE',
+      //     uploadDate: '2025-05-10T14:30:00',
+      //     version: 1
+      //   },
+      //   { 
+      //     id: 102, 
+      //     name: 'presentacion.pptx', 
+      //     originalName: 'presentacion_mayo.pptx', 
+      //     fileSize: 3145728, 
+      //     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 
+      //     status: 'ACTIVE', 
+      //     viewStatus: 'VIEWED',
+      //     viewStatusColor: 'AMBER',
+      //     uploadDate: '2025-05-11T09:15:00',
+      //     version: 1
+      //   },
+      //   { 
+      //     id: 103, 
+      //     name: 'datos.xlsx', 
+      //     originalName: 'datos_financieros.xlsx', 
+      //     fileSize: 1048576, 
+      //     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+      //     status: 'ACTIVE', 
+      //     viewStatus: 'DOWNLOADED',
+      //     viewStatusColor: 'GREEN',
+      //     uploadDate: '2025-05-12T11:45:00',
+      //     version: 2
+      //   }
+      // ];
       
       setFiles(folderFiles);
       
@@ -316,10 +316,10 @@ function App() {
     
     try {
       // Descomentar para usar la API real:
-      // await api.uploadFileToFolder(selectedFolder.id, uploadFile);
+      await api.uploadFileToFolder(selectedFolder.id, uploadFile);
       
       // Simulación para desarrollo:
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Recargamos los archivos
       loadFiles(selectedFolder.id);
@@ -336,13 +336,13 @@ function App() {
   const downloadFile = async (file) => {
     try {
       // Descomentar para usar la API real:
-      // const response = await api.downloadFile(file.id);
-      // const link = document.createElement('a');
-      // link.href = response.downloadUrl;
-      // link.download = file.originalName;
-      // document.body.appendChild(link);
-      // link.click();
-      // document.body.removeChild(link);
+      const response = await api.downloadFile(file.id);
+      const link = document.createElement('a');
+      link.href = response.downloadUrl;
+      link.download = file.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       // Simulación para desarrollo:
       showNotification(`Iniciando descarga de ${file.name}...`, 'info');
@@ -359,10 +359,10 @@ function App() {
     
     try {
       // Descomentar para usar la API real:
-      // await api.startBatchDownload({
-      //   folderId: selectedFolder.id,
-      //   includeSubfolders: true
-      // });
+      await api.startBatchDownload({
+        folderId: selectedFolder.id,
+        includeSubfolders: true
+      });
       
       // Simulación para desarrollo:
       showNotification('Descarga masiva iniciada. Recibirá una notificación cuando esté lista.', 'success');
@@ -402,10 +402,10 @@ function App() {
       
       if (resourceType === 'FOLDER') {
         // Descomentar para usar la API real:
-        // await api.assignFolderPermission(selectedResource.id, data);
+        await api.assignFolderPermission(selectedResource.id, data);
       } else {
         // Descomentar para usar la API real:
-        // await api.assignFilePermission(selectedResource.id, data);
+        await api.assignFilePermission(selectedResource.id, data);
       }
       
       // Simulación para desarrollo:

@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Comments", description = "API para gestionar comentarios en archivos")
 public class CommentController {
     private final CommentService commentService;

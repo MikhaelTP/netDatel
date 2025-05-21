@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().permitAll() // Para desarrollo, permite todo temporalmente
+                        .anyRequest().permitAll() // Permite todas las solicitudes temporalmente
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Comentar temporalmente el filtro JWT
@@ -42,7 +42,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://localhost:3000")); // Origen de tu app React
+        // Permite todos los orígenes en desarrollo
+        // configuration.setAllowedOrigins(Arrays.asList("*"));
+        // Alternativa: permitir específicamente HTTP y HTTPS
+         configuration.setAllowedOrigins(Arrays.asList("https://localhost:3000", "http://localhost:3000", "http://localhost:3001"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

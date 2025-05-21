@@ -3,11 +3,15 @@ package com.netdatel.documentserviceapi.model.entity;
 import com.netdatel.documentserviceapi.model.enums.FileStatus;
 import com.netdatel.documentserviceapi.model.enums.ViewStatus;
 import com.netdatel.documentserviceapi.model.enums.ViewStatusColor;
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -75,7 +79,8 @@ public class File {
     private Integer version = 1;
 
     @Column(columnDefinition = "jsonb")
-    private String metadata = "{}";
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String metadata;
 
     @PrePersist
     protected void onCreate() {

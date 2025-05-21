@@ -1,14 +1,20 @@
 package com.netdatel.documentserviceapi.model.entity;
 
+
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Type;
+
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
+
 @Table(name = "folders")
 @Data
 @NoArgsConstructor
@@ -51,8 +57,10 @@ public class Folder {
     @Column
     private boolean isActive = true;
 
+    @Type(JsonBinaryType.class)
     @Column(columnDefinition = "jsonb")
-    private String attributes = "{}";
+    private String attributes;
+
 
     @PrePersist
     protected void onCreate()

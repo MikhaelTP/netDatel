@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/batch-downloads")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Batch Downloads", description = "API para gestionar descargas masivas de carpetas")
 public class BatchDownloadController {
     private final BatchDownloadService batchDownloadService;
