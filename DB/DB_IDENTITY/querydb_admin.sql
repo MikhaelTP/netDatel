@@ -289,3 +289,8 @@ BEFORE UPDATE ON clients
 FOR EACH ROW
 EXECUTE FUNCTION update_last_update_date();
 
+
+select * from modules;
+DELETE FROM MODULES 
+wHERE id IN (5);
+
