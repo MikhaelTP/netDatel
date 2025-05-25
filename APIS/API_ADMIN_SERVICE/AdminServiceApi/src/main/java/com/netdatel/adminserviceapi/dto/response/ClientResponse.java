@@ -1,6 +1,7 @@
 package com.netdatel.adminserviceapi.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.netdatel.adminserviceapi.entity.enums.ClientStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +28,7 @@ public class ClientResponse {
     private String fiscalAddress;
     private String economicActivity;
     private String contactNumber;
-    private String status;
+    private ClientStatus status;
     private Boolean notified;
     private Long allocatedStorage;
     private LocalDateTime registrationDate;

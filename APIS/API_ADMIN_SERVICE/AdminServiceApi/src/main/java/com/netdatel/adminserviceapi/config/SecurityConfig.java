@@ -28,6 +28,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz ->
                         authz
+
+                                .requestMatchers("/api/clients/**").permitAll()
+                                .requestMatchers("/api/dashboard/**").permitAll()
+                                .requestMatchers("/api/modules/**").permitAll()
+                                .requestMatchers("/api/notifications/**").permitAll()
+                                .requestMatchers("/api/ruc/**").permitAll()
+                                .requestMatchers("/api/actuator/**").permitAll()
+
+
+
                                 // Permitir endpoints de actuator (con context path)
                                 .requestMatchers("/actuator/**").permitAll()
                                 .requestMatchers("/api/actuator/**").permitAll()

@@ -1,6 +1,6 @@
 package com.netdatel.adminserviceapi.api;
 
-import com.netdatel.adminserviceapi.config.CurrentUserId;
+import com.netdatel.adminserviceapi.security.CurrentUserId;  // ← Import correcto
 import com.netdatel.adminserviceapi.dto.request.ClientRequest;
 import com.netdatel.adminserviceapi.dto.response.ClientHistoryResponse;
 import com.netdatel.adminserviceapi.dto.response.ClientResponse;

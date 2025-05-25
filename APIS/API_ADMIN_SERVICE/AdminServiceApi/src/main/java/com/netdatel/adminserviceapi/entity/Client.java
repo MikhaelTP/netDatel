@@ -7,7 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,8 +57,15 @@ public class Client {
     private String contactNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     private ClientStatus status = ClientStatus.ACTIVE;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.status == null) {
+            this.status = ClientStatus.ACTIVE;
+        }
+    }
 
     @Column(nullable = false)
     private Boolean notified = false;

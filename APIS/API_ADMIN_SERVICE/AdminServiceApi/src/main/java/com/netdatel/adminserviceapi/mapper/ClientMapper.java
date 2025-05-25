@@ -16,7 +16,7 @@ public interface ClientMapper {
 
     @Mapping(target = "code", ignore = true)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", constant = "ACTIVE")
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "notified", constant = "false")
     @Mapping(target = "registrationDate", ignore = true)
     @Mapping(target = "lastUpdateDate", ignore = true)
@@ -25,7 +25,6 @@ public interface ClientMapper {
     @Mapping(target = "administrators", ignore = true)
     Client toEntity(ClientRequest request);
 
-    @Mapping(target = "status", source = "status")
     @Mapping(target = "legalRepresentatives", source = "legalRepresentatives")
     @Mapping(target = "modules", source = "clientModules")
     @Mapping(target = "administrators", source = "administrators")

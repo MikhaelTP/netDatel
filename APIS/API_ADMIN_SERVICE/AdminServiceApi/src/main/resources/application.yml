@@ -20,16 +20,16 @@ spring:
 
   # ConfiguraciOn JPA
   jpa:
-    hibernate:
-      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
         jdbc:
-          batch_size: 50
-          time_zone: UTC
-    show-sql: false
+          use_streams_for_binary: false
+        type:
+          preferred_json_mapper: jackson
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
 
   # ConfiguraciOn de respuesta
   server:
@@ -96,9 +96,9 @@ app:
   # Configuracion JWT
   security:
     jwt:
-      secret-key: ${JWT_SECRET:mTZ4QJAwx+LXWkqZkLkQdUgI6cb81+Pi0g1e9coWezzEOjElEMcwbRnRFFknUnztw6thx1HxXgCn3OWsn4OEWg==}
-      expiration: ${JWT_EXPIRATION:86400000}
-      issuer: ${JWT_ISSUER:admin-service}
+      secret-key: mTZ4QJAwx+LXWkqZkLkQdUgI6cb81+Pi0g1e9coWezzEOjElEMcwbRnRFFknUnztw6thx1HxXgCn3OWsn4OEWg==
+      expiration: 86400000
+      issuer: admin-service
       token:
         refresh-expiration: 86400000
 
@@ -147,7 +147,9 @@ logging:
     root: INFO
     com.netdatel: ${LOG_LEVEL:INFO}
     org.springframework.web: INFO
-    org.springframework.security: INFO
+    org.springframework.security: DEBUG
+    com.netdatel.adminserviceapi.security: DEBUG
+    com.netdatel.adminserviceapi.api: DEBUG
     org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:INFO}
     org.springframework.cloud.openfeign: INFO
   pattern:

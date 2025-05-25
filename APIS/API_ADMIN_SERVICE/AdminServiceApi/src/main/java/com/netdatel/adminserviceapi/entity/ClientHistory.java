@@ -1,11 +1,14 @@
 package com.netdatel.adminserviceapi.entity;
 
+import com.netdatel.adminserviceapi.entity.enums.ClientStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -27,11 +30,13 @@ public class ClientHistory {
     @Column(nullable = false, length = 50)
     private String action;
 
-    @Column(name = "previous_status", length = 20)
-    private String previousStatus;
+    //@Enumerated(EnumType.STRING)
+    @Column(name = "new_status", nullable = true, length = 20)
+    private String  newStatus;
 
-    @Column(name = "new_status", length = 20)
-    private String newStatus;
+    //@Enumerated(EnumType.STRING)
+    @Column(name = "previous_status", nullable = true, length = 20)
+    private String  previousStatus;
 
     @Column(name = "change_date")
     @CreationTimestamp
@@ -43,6 +48,6 @@ public class ClientHistory {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "details", columnDefinition = "jsonb")
+    @Column(name = "details")
     private String details;
 }

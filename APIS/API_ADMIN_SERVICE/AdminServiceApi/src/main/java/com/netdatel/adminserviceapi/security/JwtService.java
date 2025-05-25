@@ -5,6 +5,8 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +24,9 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class JwtService {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
+
+
     @Value("${app.security.jwt.secret-key}")
     private String secretKey;
 
@@ -37,6 +42,11 @@ public class JwtService {
     public void init() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
+
+        // ✅ AGREGAR ESTOS LOGS
+        logger.info("🔑 JWT Secret Key (first 10 chars): {}", secretKey.substring(0, 10) + "...");
+        logger.info("🏢 JWT Issuer: {}", issuer);
+        logger.info("⏱️ JWT Expiration: {} ms", jwtExpiration);
     }
 
     public String extractSubject(String token) {
@@ -53,11 +63,22 @@ public class JwtService {
     }
 
     public Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            logger.debug("🔍 DEBUG - Parsing JWT token with key...");
+
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            logger.debug("✅ DEBUG - JWT parsed successfully");
+            return claims;
+
+        } catch (Exception e) {
+            logger.error("❌ DEBUG - Exception extracting claims: {}", e.getMessage());
+            throw e;
+        }
     }
 
     public boolean isTokenExpired(String token) {
@@ -67,10 +88,26 @@ public class JwtService {
 
     public boolean isTokenValid(String token) {
         try {
-            // Verifica que el token tenga el emisor correcto y no esté expirado
-            return extractAllClaims(token).getIssuer().equals(issuer)
-                    && !isTokenExpired(token);
+            Claims claims = extractAllClaims(token);
+            String tokenIssuer = claims.getIssuer();
+            Date expiration = claims.getExpiration();
+            Date now = new Date();
+
+            System.out.println("🔍 DEBUG - Token issuer: " + tokenIssuer);
+            System.out.println("🔍 DEBUG - Expected issuer: admin-service");
+            System.out.println("🔍 DEBUG - Token expiration: " + expiration);
+            System.out.println("🔍 DEBUG - Current time: " + now);
+            System.out.println("🔍 DEBUG - Is expired: " + expiration.before(now));
+
+            boolean isValidIssuer = "admin-service".equals(tokenIssuer);
+            boolean isNotExpired = !expiration.before(now);
+
+            System.out.println("🔍 DEBUG - Valid issuer: " + isValidIssuer);
+            System.out.println("🔍 DEBUG - Not expired: " + isNotExpired);
+
+            return isValidIssuer && isNotExpired;
         } catch (Exception e) {
+            System.out.println("❌ DEBUG - Token validation exception: " + e.getMessage());
             return false;
         }
     }
@@ -99,11 +136,11 @@ public class JwtService {
 
     // Método para extraer el ID del usuario del token (subject)
     public Long extractUserId(String token) {
-        String subject = extractSubject(token);
-        try {
-            return Long.parseLong(subject);
-        } catch (NumberFormatException e) {
-            throw new RuntimeException("Invalid user ID in JWT token");
+        Claims claims = extractAllClaims(token);
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
         }
+        throw new RuntimeException("Invalid or missing userId in JWT token");
     }
 }

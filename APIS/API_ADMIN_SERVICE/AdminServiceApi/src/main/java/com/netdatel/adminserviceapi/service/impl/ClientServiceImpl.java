@@ -50,6 +50,10 @@ public class ClientServiceImpl implements ClientService {
 
         // Crear cliente a partir del request
         Client client = clientMapper.toEntity(request);
+
+        System.out.println("🔍 DEBUG - userId recibido: " + userId);
+
+
         client.setCreatedBy(userId);
 
         // Generar código único de cliente
@@ -63,7 +67,7 @@ public class ClientServiceImpl implements ClientService {
         ClientHistory history = new ClientHistory();
         history.setClientId(savedClient.getId());
         history.setAction("CREATED");
-        history.setNewStatus(savedClient.getStatus().name());
+        history.setNewStatus(savedClient.getStatus().name());  // ✅ Enum directamente, no .name()
         history.setChangedBy(userId);
         history.setChangeDate(LocalDateTime.now());
         clientHistoryRepository.save(history);
