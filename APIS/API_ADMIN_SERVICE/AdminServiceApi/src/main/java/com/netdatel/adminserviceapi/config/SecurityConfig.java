@@ -28,8 +28,21 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz ->
                         authz
+                                // Permitir endpoints de actuator (con context path)
                                 .requestMatchers("/actuator/**").permitAll()
-                                .requestMatchers("/api-docs/**", "/swagger-ui/**").permitAll()
+                                .requestMatchers("/api/actuator/**").permitAll()
+
+                                // Permitir endpoints de documentación (con context path)
+                                .requestMatchers("/api-docs/**").permitAll()
+                                .requestMatchers("/swagger-ui/**").permitAll()
+                                .requestMatchers("/swagger-ui.html").permitAll()
+                                .requestMatchers("/v3/api-docs/**").permitAll()
+
+                                // Permitir endpoints sin context path también (por si acaso)
+                                .requestMatchers("/health").permitAll()
+                                .requestMatchers("/info").permitAll()
+
+                                // Todos los demás requieren autenticación
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
