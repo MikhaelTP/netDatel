@@ -4,6 +4,15 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/DashBoard';
+import UsersPage from './pages/Users/UserPages';
+import UserForm from './pages/Users/UserForm';
+import RolesPage from './pages/Roles/RolesPage';
+import RoleForm from './pages/Roles/RolesForm';
+import PermissionsPage from './pages/Permissions/PermissionPage';
+import PermissionForm from './pages/Permissions/PermissionForm';
+import SettingsPage from './pages/Settings/SettingsPage';
+import ActivityPage from './pages/Activity/ActivityaPage';
+import ProfilePage from './pages/Profile/ProfilePage';
 import './styles/global.css';
 
 // Componente para proteger rutas
@@ -44,13 +53,23 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Páginas temporales para las rutas que aún no hemos creado
-const ComingSoon = ({ title }) => (
-  <div className="text-center py-12">
-    <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
-    <p className="text-gray-600">Esta funcionalidad estará disponible pronto.</p>
-  </div>
-);
+// Componente para proteger rutas de super admin
+const SuperAdminRoute = ({ children }) => {
+  const { isSuperAdmin } = useAuth();
+  
+  if (!isSuperAdmin()) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-500 text-6xl mb-4">🚫</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Acceso Denegado</h1>
+        <p className="text-gray-600">No tienes permisos para acceder a esta sección.</p>
+      </div>
+    );
+  }
+  
+  return children;
+};
+
 
 function App() {
   return (
@@ -80,23 +99,62 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             
             {/* Usuarios */}
-            <Route path="users" element={<ComingSoon title="Gestión de Usuarios" />} />
-            <Route path="users/new" element={<ComingSoon title="Crear Usuario" />} />
-            <Route path="users/:id" element={<ComingSoon title="Editar Usuario" />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="users/new" element={
+              <SuperAdminRoute>
+                <UserForm />
+              </SuperAdminRoute>
+            } />
+            <Route path="users/:id" element={<UserForm />} />
+            <Route path="users/:id/edit" element={
+              <SuperAdminRoute>
+                <UserForm />
+              </SuperAdminRoute>
+            } />
             
             {/* Roles */}
-            <Route path="roles" element={<ComingSoon title="Gestión de Roles" />} />
-            <Route path="roles/new" element={<ComingSoon title="Crear Rol" />} />
-            <Route path="roles/:id" element={<ComingSoon title="Editar Rol" />} />
+            <Route path="roles" element={<RolesPage />} />
+            <Route path="roles/new" element={
+              <SuperAdminRoute>
+                <RoleForm />
+              </SuperAdminRoute>
+            } />
+            <Route path="roles/:id" element={<RoleForm />} />
+            <Route path="roles/:id/edit" element={
+              <SuperAdminRoute>
+                <RoleForm />
+              </SuperAdminRoute>
+            } />
             
-            {/* Permisos */}
-            <Route path="permissions" element={<ComingSoon title="Gestión de Permisos" />} />
-            <Route path="permissions/new" element={<ComingSoon title="Crear Permiso" />} />
+            {/* Permisos - Solo Super Admin */}
+            <Route path="permissions" element={
+              <SuperAdminRoute>
+                <PermissionsPage />
+              </SuperAdminRoute>
+            } />
+            <Route path="permissions/new" element={
+              <SuperAdminRoute>
+                <PermissionForm />
+              </SuperAdminRoute>
+            } />
+            <Route path="permissions/:id/edit" element={
+              <SuperAdminRoute>
+                <PermissionForm />
+              </SuperAdminRoute>
+            } />
             
-            {/* Configuración */}
-            <Route path="settings" element={<ComingSoon title="Configuración" />} />
-            <Route path="profile" element={<ComingSoon title="Mi Perfil" />} />
-            <Route path="activity" element={<ComingSoon title="Actividad del Sistema" />} />
+            {/* Configuración - Solo Super Admin */}
+            <Route path="settings" element={
+              <SuperAdminRoute>
+                <SettingsPage />
+              </SuperAdminRoute>
+            } />
+            
+            {/* Perfil de usuario - Todos los usuarios autenticados */}
+            <Route path="profile" element={<ProfilePage />} />
+            
+            {/* Actividad del sistema - Todos los usuarios autenticados */}
+            <Route path="activity" element={<ActivityPage />} />
             
             {/* Redirect root to dashboard */}
             <Route path="" element={<Navigate to="/dashboard" replace />} />
@@ -109,5 +167,4 @@ function App() {
     </AuthProvider>
   );
 }
-
 export default App;
