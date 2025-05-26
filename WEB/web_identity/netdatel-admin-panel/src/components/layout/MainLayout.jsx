@@ -12,7 +12,13 @@ import {
   Home,
   User,
   ChevronDown,
-  Bell
+  Bell,
+  Building2,
+  UserPlus,
+  Package,
+  Activity,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -30,6 +36,7 @@ const MainLayout = () => {
       icon: Home,
       show: true,
     },
+    // Sección de Identity Management (existente)
     {
       name: 'Usuarios',
       href: '/users',
@@ -48,11 +55,57 @@ const MainLayout = () => {
       icon: Key,
       show: isSuperAdmin(),
     },
+    // Nueva sección de Admin Management
+    {
+      name: 'Dashboard Admin',
+      href: '/admin-dashboard',
+      icon: BarChart3,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+      separator: true, // Agregar separador visual
+    },
+    {
+      name: 'Registrar Cliente',
+      href: '/clients/new',
+      icon: UserPlus,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    {
+      name: 'Gestión Clientes',
+      href: '/clients',
+      icon: Building2,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    {
+      name: 'Módulo 1',
+      href: '/modules/module-1',
+      icon: Package,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    {
+      name: 'Módulo 2',
+      href: '/modules/module-2',
+      icon: Package,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    {
+      name: 'Módulo 3',
+      href: '/modules/module-3',
+      icon: Package,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    {
+      name: 'Notificaciones',
+      href: '/notifications',
+      icon: Bell,
+      show: isSuperAdmin() || hasRole('CLIENT_ADMIN'),
+    },
+    // Configuración (existente)
     {
       name: 'Configuración',
       href: '/settings',
       icon: Settings,
       show: isSuperAdmin(),
+      separator: true,
     },
   ];
 
@@ -98,39 +151,47 @@ const MainLayout = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-6 px-3">
+        <nav className="mt-6 px-3 overflow-y-auto h-full pb-20">
           <div className="space-y-1">
             {navigationItems
               .filter(item => item.show)
-              .map((item) => {
+              .map((item, index) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.href);
                 
                 return (
-                  <button
-                    key={item.name}
-                    onClick={() => {
-                      navigate(item.href);
-                      setSidebarOpen(false);
-                    }}
-                    className={`
-                      w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-200
-                      ${isActive 
-                        ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                      }
-                    `}
-                  >
-                    <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-primary-700' : 'text-gray-500'}`} />
-                    {item.name}
-                  </button>
+                  <React.Fragment key={item.name}>
+                    {/* Separador visual */}
+                    {item.separator && index > 0 && (
+                      <div className="pt-4 pb-2">
+                        <div className="border-t border-gray-200"></div>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => {
+                        navigate(item.href);
+                        setSidebarOpen(false);
+                      }}
+                      className={`
+                        w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-200
+                        ${isActive 
+                          ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                        }
+                      `}
+                    >
+                      <Icon className={`w-5 h-5 mr-3 ${isActive ? 'text-primary-700' : 'text-gray-500'}`} />
+                      {item.name}
+                    </button>
+                  </React.Fragment>
                 );
               })}
           </div>
         </nav>
 
         {/* User Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
           <div className="flex items-center space-x-3 text-sm">
             <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
               <User className="w-4 h-4 text-primary-600" />
@@ -169,7 +230,10 @@ const MainLayout = () => {
             {/* Right side actions */}
             <div className="flex items-center space-x-4">
               {/* Notifications */}
-              <button className="text-gray-500 hover:text-gray-700 relative">
+              <button 
+                className="text-gray-500 hover:text-gray-700 relative"
+                onClick={() => navigate('/notifications')}
+              >
                 <Bell className="w-6 h-6" />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
               </button>
