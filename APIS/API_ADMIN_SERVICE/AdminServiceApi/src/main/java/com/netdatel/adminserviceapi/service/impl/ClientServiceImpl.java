@@ -4,17 +4,25 @@ import com.netdatel.adminserviceapi.dto.event.ClientCreatedEvent;
 import com.netdatel.adminserviceapi.dto.event.ClientStatusChangedEvent;
 import com.netdatel.adminserviceapi.dto.request.ClientRequest;
 import com.netdatel.adminserviceapi.dto.request.LegalRepresentativeRequest;
+import com.netdatel.adminserviceapi.dto.request.NotificationRequest;
 import com.netdatel.adminserviceapi.dto.response.ClientResponse;
 import com.netdatel.adminserviceapi.entity.Client;
+import com.netdatel.adminserviceapi.entity.ClientAdministrator;
 import com.netdatel.adminserviceapi.entity.ClientHistory;
 import com.netdatel.adminserviceapi.entity.LegalRepresentative;
 import com.netdatel.adminserviceapi.entity.enums.ClientStatus;
+import com.netdatel.adminserviceapi.entity.enums.TargetType;
 import com.netdatel.adminserviceapi.exception.DuplicateResourceException;
 import com.netdatel.adminserviceapi.exception.ResourceNotFoundException;
+import com.netdatel.adminserviceapi.mapper.ClientAdministratorMapper;
 import com.netdatel.adminserviceapi.mapper.ClientMapper;
 import com.netdatel.adminserviceapi.mapper.LegalRepresentativeMapper;
+import com.netdatel.adminserviceapi.mapper.WorkersRegistrationMapper;
 import com.netdatel.adminserviceapi.repository.*;
+import com.netdatel.adminserviceapi.service.ClientModuleService;
 import com.netdatel.adminserviceapi.service.ClientService;
+import com.netdatel.adminserviceapi.service.NotificationService;
+import com.netdatel.adminserviceapi.service.WorkersRegistrationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +44,18 @@ public class ClientServiceImpl implements ClientService {
     private final ClientRepository clientRepository;
     private final ClientHistoryRepository clientHistoryRepository;
     private final LegalRepresentativeRepository legalRepresentativeRepository;
+    private final ClientAdministratorRepository clientAdministratorRepository;
+    private final WorkersRegistrationRepository workersRegistrationRepository;
+
     private final ClientMapper clientMapper;
     private final LegalRepresentativeMapper legalRepresentativeMapper;
+    private final ClientAdministratorMapper clientAdministratorMapper;
+    private final WorkersRegistrationMapper workersRegistrationMapper;
+
+    private final ClientModuleService clientModuleService;
+    private final WorkersRegistrationService workersRegistrationService;
+    private final NotificationService notificationService;
+
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -76,19 +94,78 @@ public class ClientServiceImpl implements ClientService {
         if (request.getLegalRepresentatives() != null && !request.getLegalRepresentatives().isEmpty()) {
             processLegalRepresentatives(savedClient, request.getLegalRepresentatives(), userId);
         }
-
-        // Procesar módulos (se implementará en ClientModuleService)
-
+        // Procesar Módulos
+        if (request.getModules() != null && !request.getModules().isEmpty()) {
+            try {
+                log.info("Procesando {} módulos para cliente {}", request.getModules().size(), savedClient.getCode());
+                request.getModules().forEach(moduleRequest -> {
+                    try {
+                        clientModuleService.assignModuleToClient(savedClient.getId(), moduleRequest, userId);
+                        log.info("Módulo {} asignado correctamente al cliente {}", moduleRequest.getModuleId(), savedClient.getCode());
+                    } catch (Exception e) {
+                        log.error("Error asignando módulo {} al cliente {}: {}", moduleRequest.getModuleId(), savedClient.getCode(), e.getMessage(), e);
+                        // No lanzamos excepción para no rollback todo, pero lo registramos
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Error procesando módulos para cliente {}: {}", savedClient.getCode(), e.getMessage(), e);
+            }
+        }
         // Procesar administradores (se implementará en ClientAdministratorService)
+        if (request.getAdministrators() != null && !request.getAdministrators().isEmpty()) {
+            try {
+                log.info("Procesando {} administradores para cliente {}", request.getAdministrators().size(), savedClient.getCode());
+                request.getAdministrators().forEach(adminRequest -> {
+                    try {
+                        ClientAdministrator administrator = clientAdministratorMapper.toEntity(adminRequest);
+                        administrator.setClient(savedClient);
+                        administrator.setCreatedBy(userId);
+
+                        ClientAdministrator savedAdmin = clientAdministratorRepository.save(administrator);
+                        log.info("Administrador {} creado correctamente para cliente {}", savedAdmin.getEmail(), savedClient.getCode());
+
+                        // ✅ Enviar notificación si sendNotification = true
+                        if (adminRequest.getSendNotification() != null && adminRequest.getSendNotification()) {
+                            sendAdministratorNotification(savedAdmin, savedClient, userId);
+                        }
+                    } catch (Exception e) {
+                        log.error("Error creando administrador {} para cliente {}: {}", adminRequest.getEmail(), savedClient.getCode(), e.getMessage(), e);
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Error procesando administradores para cliente {}: {}", savedClient.getCode(), e.getMessage(), e);
+            }
+        }
+        // Procesar a los trabajadores
+        if (request.getWorkers() != null && !request.getWorkers().isEmpty()) {
+            try {
+                log.info("Procesando {} trabajadores para cliente {}", request.getWorkers().size(), savedClient.getCode());
+                request.getWorkers().forEach(workerRequest -> {
+                    try {
+                        workersRegistrationService.registerWorker(savedClient.getId(), workerRequest, userId);
+                        log.info("Trabajador {} registrado correctamente para cliente {}", workerRequest.getEmail(), savedClient.getCode());
+                    } catch (Exception e) {
+                        log.error("Error registrando trabajador {} para cliente {}: {}", workerRequest.getEmail(), savedClient.getCode(), e.getMessage(), e);
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Error procesando trabajadores para cliente {}: {}", savedClient.getCode(), e.getMessage(), e);
+            }
+        }
 
         // Publicar evento de cliente creado
-        eventPublisher.publishEvent(new ClientCreatedEvent(
-                savedClient.getId(),
-                savedClient.getCode(),
-                savedClient.getBusinessName(),
-                savedClient.getAllocatedStorage(),
-                LocalDateTime.now()
-        ));
+        try {
+            eventPublisher.publishEvent(new ClientCreatedEvent(
+                    savedClient.getId(),
+                    savedClient.getCode(),
+                    savedClient.getBusinessName(),
+                    savedClient.getAllocatedStorage(),
+                    LocalDateTime.now()
+            ));
+            log.info("Evento ClientCreated publicado para cliente {}", savedClient.getCode());
+        } catch (Exception e) {
+            log.error("Error publicando evento para cliente {}: {}", savedClient.getCode(), e.getMessage(), e);
+        }
 
         return clientMapper.toDto(savedClient);
     }
@@ -260,6 +337,46 @@ public class ClientServiceImpl implements ClientService {
             representative.setCreatedBy(userId);
 
             legalRepresentativeRepository.save(representative);
+        }
+    }
+
+    private void sendAdministratorNotification(ClientAdministrator administrator, Client client, Integer userId) {
+        try {
+            NotificationRequest notification = new NotificationRequest();
+            notification.setClientId(client.getId());
+            notification.setTargetType(TargetType.ADMINISTRATOR);
+            notification.setTargetId(administrator.getId());
+            notification.setNotificationType("ADMIN_REGISTRATION");
+            notification.setSubject("Invitación para completar registro de administrador");
+
+            String content = "<h2>Bienvenido al sistema</h2>" +
+                    "<p>Estimado administrador,</p>" +
+                    "<p>Ha sido registrado como administrador de <strong>" + client.getBusinessName() + "</strong>.</p>" +
+                    "<p>Para completar su registro y acceder al sistema, haga clic en el siguiente enlace:</p>" +
+                    "<p><a href='[REGISTRATION_LINK]' style='background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;'>Completar Registro</a></p>" +
+                    "<br>" +
+                    "<p><strong>Datos de la empresa:</strong></p>" +
+                    "<ul>" +
+                    "<li>RUC: " + client.getRuc() + "</li>" +
+                    "<li>Razón Social: " + client.getBusinessName() + "</li>" +
+                    "<li>Nombre Comercial: " + (client.getCommercialName() != null ? client.getCommercialName() : "N/A") + "</li>" +
+                    "</ul>" +
+                    "<br>" +
+                    "<p>Saludos cordiales,<br>El equipo de soporte</p>";
+
+            notification.setContent(content);
+
+            notificationService.sendNotification(notification, userId);
+
+            // Actualizar estado de notificación
+            administrator.setNotificationSent(true);
+            administrator.setNotificationDate(LocalDateTime.now());
+            clientAdministratorRepository.save(administrator);
+
+            log.info("Notificación enviada correctamente a administrador: {}", administrator.getEmail());
+
+        } catch (Exception e) {
+            log.error("Error enviando notificación a administrador {}: {}", administrator.getEmail(), e.getMessage(), e);
         }
     }
 }
