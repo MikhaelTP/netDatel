@@ -30,9 +30,20 @@ adminApiClient.interceptors.request.use(
 // Interceptor para manejar respuestas y errores
 adminApiClient.interceptors.response.use(
   (response) => {
+    console.log('✅ Admin API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
     return response;
   },
   (error) => {
+    console.error('❌ Admin API Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      url: error.config?.url,
+    });
+
     // Si el token expira (401), redirigir al login
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
@@ -40,13 +51,6 @@ adminApiClient.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    
-    // Log del error para debugging
-    console.error('Admin API Error:', {
-      status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-      url: error.config?.url,
-    });
     
     return Promise.reject(error);
   }

@@ -18,7 +18,9 @@ import ProfilePage from './pages/Profile/ProfilePage';
 import AdminDashboard from './pages/AdminDashBoard';
 import ClientRegistrationForm from './pages/Client/ClientRegistrationForm';
 import ClientsPage from './pages/Client/ClientsPage';
-import ModulePage from './pages/Client/ModulePage';
+import ModulePage from './pages/ModulePage/ModulePage';
+import ClientDetailsPage from './pages/Client/ClientDetailsPage';
+import NotificationsPage from './pages/Notifications/NotificationPage';
 
 import './styles/global.css';
 

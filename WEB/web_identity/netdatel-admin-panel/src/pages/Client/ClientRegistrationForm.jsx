@@ -18,7 +18,9 @@ import {
   MapPin,
   Phone,
   FileX,
-  CheckCircle
+  CheckCircle,
+  UserCheck,
+  Settings
 } from 'lucide-react';
 
 const ClientRegistrationForm = () => {
@@ -156,6 +158,18 @@ const ClientRegistrationForm = () => {
       }
       if (!admin.dni.trim()) {
         newErrors[`admin_${index}_dni`] = 'El DNI es requerido';
+      }
+    });
+
+    // Validar trabajadores
+    formData.workers.forEach((worker, index) => {
+      if (!worker.email.trim()) {
+        newErrors[`worker_${index}_email`] = 'El email es requerido';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(worker.email)) {
+        newErrors[`worker_${index}_email`] = 'Email inválido';
+      }
+      if (!worker.dni.trim()) {
+        newErrors[`worker_${index}_dni`] = 'El DNI es requerido';
       }
     });
 
@@ -328,6 +342,17 @@ const ClientRegistrationForm = () => {
     });
   };
 
+  const updateModuleConfig = (moduleId, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      modules: prev.modules.map(m => 
+        m.moduleId === moduleId 
+          ? { ...m, [field]: value }
+          : m
+      )
+    }));
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -364,7 +389,7 @@ const ClientRegistrationForm = () => {
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate('/admin-dashboard')}
-          className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100"
+          className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -525,6 +550,22 @@ const ClientRegistrationForm = () => {
                     placeholder="+51 999 999 999"
                   />
                 </div>
+
+                <div>
+                  <label htmlFor="allocatedStorage" className="block text-sm font-medium text-gray-700 mb-2">
+                    Almacenamiento Asignado (MB)
+                  </label>
+                  <input
+                    id="allocatedStorage"
+                    name="allocatedStorage"
+                    type="number"
+                    value={formData.allocatedStorage}
+                    onChange={handleChange}
+                    className="input"
+                    min="0"
+                    placeholder="1024"
+                  />
+                </div>
               </div>
 
               <div className="mt-6">
@@ -600,7 +641,7 @@ const ClientRegistrationForm = () => {
                       <button
                         type="button"
                         onClick={() => removeLegalRepresentative(index)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600 hover:text-red-800 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -658,7 +699,7 @@ const ClientRegistrationForm = () => {
                           const newReps = [...formData.legalRepresentatives];
                           newReps[index].fullName = e.target.value;
                           setFormData(prev => ({ ...prev, legalRepresentatives: newReps }));
-                                                  }}
+                        }}
                         className={`input ${errors[`representative_${index}_name`] ? 'border-red-300' : ''}`}
                         placeholder="Juan Pérez Ramírez"
                       />
@@ -725,7 +766,7 @@ const ClientRegistrationForm = () => {
                           newReps[index].isActive = e.target.checked;
                           setFormData(prev => ({ ...prev, legalRepresentatives: newReps }));
                         }}
-                        className="form-checkbox h-4 w-4 text-blue-600"
+                        className="text-blue-600 focus:ring-blue-500 rounded"
                         id={`active_${index}`}
                       />
                       <label htmlFor={`active_${index}`} className="text-sm text-gray-700">
@@ -737,52 +778,403 @@ const ClientRegistrationForm = () => {
               ))}
             </div>
 
-            {/* Aquí puedes seguir con los módulos, administradores, y trabajadores en secciones similares */}
-            {/* O indícame si deseas que también continúe con esas secciones específicas */}
-          </div>
-
-          {/* Sidebar u otras secciones complementarias */}
-          <div className="space-y-6">
+            {/* Administradores */}
             <div className="card">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Package className="w-5 h-5 mr-2" />
-                Módulos
-              </h3>
-              {availableModules.map((mod) => (
-                <div key={mod.id} className="flex items-center justify-between py-1">
-                  <label className="flex items-center text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={formData.modules.some(m => m.moduleId === mod.id)}
-                      onChange={() => toggleModule(mod.id)}
-                      className="form-checkbox h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-2">{mod.name}</span>
-                  </label>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <UserCheck className="w-5 h-5 mr-2" />
+                  Administradores
+                </h3>
+                <button
+                  type="button"
+                  onClick={addAdministrator}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Agregar</span>
+                </button>
+              </div>
+              
+              {formData.administrators.map((admin, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium text-gray-900">
+                      Administrador {index + 1}
+                    </h4>
+                    {formData.administrators.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeAdministrator(index)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        value={admin.email}
+                        onChange={(e) => {
+                          const newAdmins = [...formData.administrators];
+                          newAdmins[index].email = e.target.value;
+                          setFormData(prev => ({ ...prev, administrators: newAdmins }));
+                        }}
+                        className={`input ${errors[`admin_${index}_email`] ? 'border-red-300' : ''}`}
+                        placeholder="admin@empresa.com"
+                      />
+                      {errors[`admin_${index}_email`] && (
+                        <p className="mt-1 text-sm text-red-600">{errors[`admin_${index}_email`]}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        DNI *
+                      </label>
+                      <input
+                        type="text"
+                        value={admin.dni}
+                        onChange={(e) => {
+                          const newAdmins = [...formData.administrators];
+                          newAdmins[index].dni = e.target.value;
+                          setFormData(prev => ({ ...prev, administrators: newAdmins }));
+                        }}
+                        className={`input ${errors[`admin_${index}_dni`] ? 'border-red-300' : ''}`}
+                        placeholder="12345678"
+                      />
+                      {errors[`admin_${index}_dni`] && (
+                        <p className="mt-1 text-sm text-red-600">{errors[`admin_${index}_dni`]}</p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2 flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={admin.sendNotification}
+                        onChange={(e) => {
+                          const newAdmins = [...formData.administrators];
+                          newAdmins[index].sendNotification = e.target.checked;
+                          setFormData(prev => ({ ...prev, administrators: newAdmins }));
+                        }}
+                        className="text-blue-600 focus:ring-blue-500 rounded"
+                        id={`notify_admin_${index}`}
+                      />
+                      <label htmlFor={`notify_admin_${index}`} className="text-sm text-gray-700">
+                        Enviar notificación de registro por email
+                      </label>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="card p-4">
-              <button
-                type="submit"
-                className="btn-primary w-full flex items-center justify-center space-x-2"
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Guardando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>{isEditing ? 'Actualizar Cliente' : 'Registrar Cliente'}</span>
-                  </>
-                )}
-              </button>
+            {/* Trabajadores */}
+            <div className="card">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Trabajadores
+                </h3>
+                <button
+                  type="button"
+                  onClick={addWorker}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Agregar</span>
+                </button>
+              </div>
+
+              {formData.workers.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay trabajadores registrados</p>
+                  <p className="text-sm">Los trabajadores son opcionales y se pueden agregar más tarde</p>
+                </div>
+              ) : (
+                formData.workers.map((worker, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-medium text-gray-900">
+                        Trabajador {index + 1}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => removeWorker(index)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          value={worker.email}
+                          onChange={(e) => {
+                            const newWorkers = [...formData.workers];
+                            newWorkers[index].email = e.target.value;
+                            setFormData(prev => ({ ...prev, workers: newWorkers }));
+                          }}
+                          className={`input ${errors[`worker_${index}_email`] ? 'border-red-300' : ''}`}
+                          placeholder="trabajador@empresa.com"
+                        />
+                        {errors[`worker_${index}_email`] && (
+                          <p className="mt-1 text-sm text-red-600">{errors[`worker_${index}_email`]}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          DNI *
+                        </label>
+                        <input
+                          type="text"
+                          value={worker.dni}
+                          onChange={(e) => {
+                            const newWorkers = [...formData.workers];
+                            newWorkers[index].dni = e.target.value;
+                            setFormData(prev => ({ ...prev, workers: newWorkers }));
+                          }}
+                          className={`input ${errors[`worker_${index}_dni`] ? 'border-red-300' : ''}`}
+                          placeholder="12345678"
+                        />
+                        {errors[`worker_${index}_dni`] && (
+                          <p className="mt-1 text-sm text-red-600">{errors[`worker_${index}_dni`]}</p>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2 flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={worker.sendNotification}
+                          onChange={(e) => {
+                            const newWorkers = [...formData.workers];
+                            newWorkers[index].sendNotification = e.target.checked;
+                            setFormData(prev => ({ ...prev, workers: newWorkers }));
+                          }}
+                          className="text-blue-600 focus:ring-blue-500 rounded"
+                          id={`notify_worker_${index}`}
+                        />
+                        <label htmlFor={`notify_worker_${index}`} className="text-sm text-gray-700">
+                          Enviar notificación de registro por email
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Módulos Disponibles */}
+            <div className="card">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center mb-6">
+                <Package className="w-5 h-5 mr-2" />
+                Módulos de Servicio
+              </h3>
+
+              {availableModules.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No hay módulos disponibles</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {availableModules.map((module) => {
+                    const isSelected = formData.modules.some(m => m.moduleId === module.id);
+                    const selectedModule = formData.modules.find(m => m.moduleId === module.id);
+                    
+                    return (
+                      <div key={module.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleModule(module.id)}
+                            className="mt-1 text-blue-600 focus:ring-blue-500 rounded"
+                            id={`module_${module.id}`}
+                          />
+                          <div className="flex-1">
+                            <label 
+                              htmlFor={`module_${module.id}`}
+                              className="font-medium text-gray-900 cursor-pointer"
+                            >
+                              {module.name}
+                            </label>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {module.description}
+                            </p>
+
+                            {/* Configuración del módulo */}
+                            {isSelected && (
+                              <div className="mt-4 space-y-3 bg-gray-50 rounded-lg p-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                      Fecha de Inicio
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={selectedModule?.startDate || ''}
+                                      onChange={(e) => updateModuleConfig(module.id, 'startDate', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                      Fecha de Fin
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={selectedModule?.endDate || ''}
+                                      onChange={(e) => updateModuleConfig(module.id, 'endDate', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Máximo de Usuarios
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={selectedModule?.maxUserAccounts || 10}
+                                    onChange={(e) => updateModuleConfig(module.id, 'maxUserAccounts', parseInt(e.target.value))}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Límite de Almacenamiento Específico (MB)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={selectedModule?.specificStorageLimit || ''}
+                                    onChange={(e) => updateModuleConfig(module.id, 'specificStorageLimit', e.target.value ? parseInt(e.target.value) : null)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Opcional - usar límite general"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Configuración Adicional
+                                  </label>
+                                  <textarea
+                                    rows={2}
+                                    value={selectedModule?.configuration || ''}
+                                    onChange={(e) => updateModuleConfig(module.id, 'configuration', e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Configuración JSON o notas adicionales..."
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Resumen */}
+            <div className="card">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+                <FileText className="w-5 h-5 mr-2" />
+                Resumen
+              </h3>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Representantes legales:</span>
+                  <span className="font-medium">{formData.legalRepresentatives.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Administradores:</span>
+                  <span className="font-medium">{formData.administrators.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Trabajadores:</span>
+                  <span className="font-medium">{formData.workers.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Módulos seleccionados:</span>
+                  <span className="font-medium">{formData.modules.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Almacenamiento:</span>
+                  <span className="font-medium">{formData.allocatedStorage} MB</span>
+                </div>
+              </div>
+
+              {formData.modules.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Módulos:</h4>
+                  <div className="space-y-2">
+                    {formData.modules.map((module) => {
+                      const moduleInfo = availableModules.find(m => m.id === module.moduleId);
+                      return (
+                        <div key={module.moduleId} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm text-gray-700">
+                            {moduleInfo?.name || `Módulo ${module.moduleId}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => navigate('/clients')}
+            className="btn-secondary"
+            disabled={saving}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="btn-primary flex items-center space-x-2"
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>{isEditing ? 'Actualizar Cliente' : 'Registrar Cliente'}</span>
+              </>
+            )}
+          </button>
         </div>
       </form>
     </div>
