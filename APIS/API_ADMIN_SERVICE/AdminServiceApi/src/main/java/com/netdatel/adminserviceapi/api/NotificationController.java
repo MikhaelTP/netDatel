@@ -1,10 +1,10 @@
 package com.netdatel.adminserviceapi.api;
 
-import com.netdatel.adminserviceapi.config.CurrentUserId;
 import com.netdatel.adminserviceapi.dto.request.NotificationRequest;
 import com.netdatel.adminserviceapi.dto.response.NotificationResponse;
 import com.netdatel.adminserviceapi.entity.enums.NotificationStatus;
 import com.netdatel.adminserviceapi.entity.enums.TargetType;
+import com.netdatel.adminserviceapi.security.CurrentUserId;
 import com.netdatel.adminserviceapi.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

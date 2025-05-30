@@ -60,4 +60,8 @@ public class Notification {
 
     @Column(name = "created_by", nullable = false)
     private Integer createdBy;
+
+    // ✅ NUEVO CAMPO PARA ALMACENAR DETALLES ADICIONALES (ej: MailerSend message_id)
+    @Column(name = "details", columnDefinition = "TEXT")
+    private String details;
 }

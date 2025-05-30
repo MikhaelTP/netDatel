@@ -72,7 +72,6 @@ public class ClientModule {
     @Column(name = "updated_by")
     private Integer updatedBy;
 
-    @Column(name = "configuration", columnDefinition = "jsonb")
-    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "configuration")
     private String configuration;
 }

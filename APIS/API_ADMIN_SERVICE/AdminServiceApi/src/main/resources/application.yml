@@ -66,33 +66,9 @@ server:
     include-stacktrace: never
     include-exception: false
 
-# Clientes Feign para integracion con otros servicios
-feign:
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: basic
-  httpclient:
-    enabled: true
-    max-connections: 200
-    max-connections-per-route: 50
 
 # URLs de servicios externos
 app:
-  services:
-    identity-url: http://localhost:8080
-    document-url: http://localhost:8082
-    provider-url: http://localhost:8083
-    document-processing-url: http://localhost:8090
-    mailer-send-url: http://localhost:8095
-  #  identity-url: ${IDENTITY_SERVICE_URL:http://localhost:8080}
-   # document-url: ${DOCUMENT_SERVICE_URL:http://localhost:8082}
-    #provider-url: ${PROVIDER_SERVICE_URL:http://localhost:8083}
-    #document-processing-url: ${DOCUMENT_PROCESSING_URL:http://localhost:8090}
-    #mailer-send-url: ${MAILER_SEND_URL:http://localhost:8095}
-
   # Configuracion JWT
   security:
     jwt:
@@ -101,13 +77,64 @@ app:
       issuer: admin-service
       token:
         refresh-expiration: 86400000
+  test:
+    mailersend:
+      enabled: true
+  services:
+    identity-url: http://localhost:8080
+    document-url: http://localhost:8082
+    provider-url: http://localhost:8083
+    document-processing-url: http://localhost:8090
+    # ✅ ACTUALIZAR URL A LA API REAL DE MAILERSEND
+    mailer-send-url: https://api.mailersend.com/v1
+
+  mailersend:
+    api-token: mlsn.7bbb81dde6b3dc0409280867b903076549de7b57c9202a6e79553a4c09f59894
+    from-email: test@test-3m5jgro8nqmgdpyo.mlsender.net
+    from-name: Admin Service Test
+
+    # Configuración de reintentos
+    retry:
+      max-attempts: 3
+      delay-seconds: 60
+
+    # Rate limiting
+    rate-limit:
+      requests-per-minute: 120  # MailerSend permite hasta 120 req/min en plan gratuito
 
 
-  # Configuracion de tareas programadas
-  scheduler:
-    module-expiration-check: 0 0 1 * * * # 1:00 AM todos los d�as
-    notification-retry: 0 0/30 * * * * # Cada 30 minutos
-    temp-file-cleanup: 0 0 2 * * * # 2:00 AM todos los d�as
+
+
+      # Configuracion de tareas programadas
+      scheduler:
+        module-expiration-check: 0 0 1 * * * # 1:00 AM todos los d�as
+        notification-retry: 0 0/30 * * * * # Cada 30 minutos
+        temp-file-cleanup: 0 0 2 * * * # 2:00 AM todos los d�as
+
+
+# Configuración Feign específica para MailerSend
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+      # ✅ CONFIGURACIÓN ESPECÍFICA PARA MAILERSEND
+      mailersend-api:
+        connectTimeout: 10000
+        readTimeout: 15000
+        loggerLevel: full
+        errorDecoder: com.netdatel.adminserviceapi.service.integration.MailerSendErrorDecoder
+  httpclient:
+    enabled: true
+    max-connections: 200
+    max-connections-per-route: 50
+
+
+
+
+
 
 # Configuracion de actuator para monitoreo
 management:
