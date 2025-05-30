@@ -147,6 +147,7 @@ const UserForm = () => {
         lastName: formData.lastName,
         enabled: formData.enabled,
         accountNonLocked: formData.accountNonLocked,
+        roles: formData.selectedRoles.map(roleId => ({ id: roleId }))
       };
 
       // Solo incluir password si se está creando o si se cambió

@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Upload,
   Plus,
+  Info,
   Trash2,
   Mail,
   User,
@@ -195,6 +196,11 @@ const ClientRegistrationForm = () => {
         await clientsApi.create(formData);
         showNotification('Cliente registrado exitosamente');
       }
+
+      // ✅ NUEVA FUNCIONALIDAD - Auto-registro de administradores
+      if (!isEditing && formData.administrators && formData.administrators.length > 0) {
+        await autoRegisterAdministrators(savedClient.data || savedClient, formData.administrators, formData.modules);
+      }
       
       navigate('/clients');
     } catch (error) {
@@ -222,41 +228,257 @@ const ClientRegistrationForm = () => {
     }
   };
 
-  const handleRucFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const autoRegisterAdministrators = async (client, administrators, selectedModules) => {
+  try {
+    for (const admin of administrators) {
+      if (admin.email && admin.email.trim()) {
+        // Determinar rol basado en módulos seleccionados
+        const roles = [];
+        
+        selectedModules.forEach(module => {
+          const moduleInfo = availableModules.find(m => m.id === module.moduleId);
+          if (moduleInfo) {
+            if (moduleInfo.code === 'MOD1' || moduleInfo.name?.includes('Documentos Básicos')) {
+              roles.push({ id: 3 });
+            } else if (moduleInfo.code === 'MOD2' || moduleInfo.name?.includes('Documentos Avanzados')) {
+              roles.push({ id: 4 });
+            } else if (moduleInfo.code === 'MOD3' || moduleInfo.name?.includes('Proveedores')) {
+              roles.push({ id: 5 });
+            }
+          }
+        });
 
-    if (file.type !== 'application/pdf') {
-      showNotification('Solo se permiten archivos PDF', 'error');
-      return;
+        // Si no hay módulos específicos, asignar rol básico
+        if (roles.length === 0) {
+          roles.push({ id: 3 }); // Rol por defecto
+        }
+
+        const autoRegisterData = {
+          userType: 'CLIENT_ADMIN',
+          email: admin.email, 
+          firstName: null,
+          lastName: null, 
+          roles: roles
+        };
+
+          // ✅ CAPTURAR respuesta con credenciales generadas
+        const response = await usersApi.autoRegister(autoRegisterData);
+        const credentials = response.data;
+
+        registeredAdmins.push({
+          email: admin.email,
+          username: credentials.username,
+          temporaryPassword: credentials.temporaryPassword
+        });
+        
+        console.log(`✅ Auto-registrado administrador: ${admin.email}`);
+      }
     }
 
-    try {
-      setRucProcessing(true);
-      const response = await rucApi.processFile(file);
-      const extractedData = response.data;
+    // ✅ ENVIAR notificación con credenciales
+    if (registeredAdmins.length > 0) {
+      await sendRegistrationNotification(client, registeredAdmins);
+    }
+    
+  } catch (error) {
+    console.error('Error en auto-registro de administradores:', error);
+    showNotification('Cliente creado, pero hubo un error al registrar algunos administradores', 'warning');
+  }
+};
+
+
+  // Función para cargar y procesar un único archivo RUC
+const handleRucFileUpload = async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  // Permitir selección múltiple
+  const selectedFiles = Array.from(files);
+  console.log(`📄 ${selectedFiles.length} archivo(s) seleccionado(s)`);
+  
+  // Validar archivos
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  let allFilesValid = true;
+  let invalidReason = '';
+
+  // Verificar que todos los archivos son válidos
+  for (const file of selectedFiles) {
+    // Validar tipo de archivo
+    if (file.type !== 'application/pdf') {
+      invalidReason = `El archivo "${file.name}" no es un PDF válido`;
+      allFilesValid = false;
+      break;
+    }
+
+    // Validar tamaño
+    if (file.size > MAX_FILE_SIZE) {
+      invalidReason = `El archivo "${file.name}" supera el tamaño máximo permitido (10MB)`;
+      allFilesValid = false;
+      break;
+    }
+  }
+
+  if (!allFilesValid) {
+    showNotification(invalidReason, 'error');
+    // Limpiar el input file
+    e.target.value = '';
+    return;
+  }
+
+  try {
+    setRucProcessing(true);
+    
+    if (selectedFiles.length === 1) {
+      // Proceso de un solo archivo (mantiene comportamiento original)
+      const file = selectedFiles[0];
+      showNotification(`Procesando archivo RUC: ${file.name}...`, 'info');
       
-      if (extractedData.ruc) {
+      console.log('📄 Procesando archivo único:', file.name, 'Tamaño:', file.size);
+      
+      const response = await rucApi.processFile(file);
+      
+      if (response.data.success && response.data.data) {
+        const extractedData = response.data.data;
+        
+        console.log('✅ Datos extraídos:', extractedData);
+
+        // Actualizar información básica
         setFormData(prev => ({
           ...prev,
-          ruc: extractedData.ruc,
+          ruc: extractedData.ruc || prev.ruc,
           businessName: extractedData.businessName || prev.businessName,
           commercialName: extractedData.commercialName || prev.commercialName,
           taxpayerType: extractedData.taxpayerType || prev.taxpayerType,
           activityStartDate: extractedData.activityStartDate || prev.activityStartDate,
           fiscalAddress: extractedData.fiscalAddress || prev.fiscalAddress,
           economicActivity: extractedData.economicActivity || prev.economicActivity,
+          contactNumber: extractedData.contactNumber || prev.contactNumber,
+          // Actualizar representantes legales si se encontraron
+          legalRepresentatives: extractedData.legalRepresentatives && extractedData.legalRepresentatives.length > 0 
+            ? extractedData.legalRepresentatives 
+            : prev.legalRepresentatives
         }));
         
-        showNotification('Datos extraídos exitosamente del archivo RUC');
+        // Mostrar resumen de lo que se extrajo
+        const extractedFields = [];
+        if (extractedData.ruc) extractedFields.push('RUC');
+        if (extractedData.businessName) extractedFields.push('Razón Social');
+        if (extractedData.legalRepresentatives?.length > 0) {
+          extractedFields.push(`${extractedData.legalRepresentatives.length} Representante(s) Legal(es)`);
+        }
+        
+        const successMessage = extractedFields.length > 0 
+          ? `Datos extraídos: ${extractedFields.join(', ')}` 
+          : 'Archivo procesado, algunos campos pueden requerir verificación manual';
+          
+        showNotification(successMessage, 'success');
+        
+        // Limpiar errores si los datos son válidos
+        if (extractedData.ruc) {
+          setErrors(prev => ({ ...prev, ruc: '' }));
+        }
+        if (extractedData.businessName) {
+          setErrors(prev => ({ ...prev, businessName: '' }));
+        }
+      } else {
+        showNotification('No se pudieron extraer datos del archivo. Verifique que sea una ficha RUC válida.', 'error');
       }
-    } catch (error) {
-      console.error('Error processing RUC file:', error);
-      showNotification('Error al procesar el archivo RUC', 'error');
-    } finally {
-      setRucProcessing(false);
+    } else {
+      // Proceso múltiple (nuevo)
+      showNotification(`Procesando ${selectedFiles.length} archivos RUC...`, 'info');
+      
+      console.log(`📄 Procesando ${selectedFiles.length} archivos en lote`);
+      
+      const response = await rucApi.processMultipleFiles(selectedFiles);
+      
+      if (response.data.success) {
+        const { successful_files, total_files, data } = response.data;
+        
+        console.log(`✅ Procesados ${successful_files} de ${total_files} archivos`);
+        console.log('📊 Datos extraídos:', data);
+        
+        // Si hay al menos un archivo procesado correctamente
+        if (data && data.length > 0) {
+          // Usar el primer resultado exitoso como base para actualizar el formulario
+          const primaryData = data[0].data;
+          
+          // Actualizar formulario con datos del primer archivo
+          setFormData(prev => ({
+            ...prev,
+            ruc: primaryData.ruc || prev.ruc,
+            businessName: primaryData.businessName || prev.businessName,
+            commercialName: primaryData.commercialName || prev.commercialName,
+            taxpayerType: primaryData.taxpayerType || prev.taxpayerType,
+            activityStartDate: primaryData.activityStartDate || prev.activityStartDate,
+            fiscalAddress: primaryData.fiscalAddress || prev.fiscalAddress,
+            economicActivity: primaryData.economicActivity || prev.economicActivity,
+            contactNumber: primaryData.contactNumber || prev.contactNumber,
+          }));
+          
+          // Combinar representantes legales de todos los archivos
+          const allRepresentatives = [];
+          data.forEach(result => {
+            if (result.data.legalRepresentatives && result.data.legalRepresentatives.length > 0) {
+              allRepresentatives.push(...result.data.legalRepresentatives);
+            }
+          });
+          
+          // Solo actualizar representantes si encontramos alguno
+          if (allRepresentatives.length > 0) {
+            setFormData(prev => ({
+              ...prev,
+              legalRepresentatives: allRepresentatives
+            }));
+          }
+          
+          // Limpiar errores si los datos primarios son válidos
+          if (primaryData.ruc) {
+            setErrors(prev => ({ ...prev, ruc: '' }));
+          }
+          if (primaryData.businessName) {
+            setErrors(prev => ({ ...prev, businessName: '' }));
+          }
+          
+          // Mostrar resumen del procesamiento
+          const totalReps = allRepresentatives.length;
+          const successMessage = `Procesados ${successful_files} de ${total_files} archivos. ` + 
+            `Encontrados: ${totalReps} representante(s) legal(es)`;
+            
+          showNotification(successMessage, 'success');
+        } else {
+          showNotification(`Procesados ${successful_files} de ${total_files} archivos, pero no se pudieron extraer datos útiles.`, 'warning');
+        }
+        
+        // Si hubo archivos con error, mostrar advertencia
+        if (response.data.errors && response.data.errors.length > 0) {
+          console.warn('⚠️ Algunos archivos tuvieron errores:', response.data.errors);
+          // Opcionalmente mostrar detalles de los errores
+          const errorFiles = response.data.errors.map(e => e.filename).join(', ');
+          showNotification(`Los siguientes archivos no pudieron procesarse: ${errorFiles}`, 'warning');
+        }
+      } else {
+        showNotification('Error procesando archivos. Intente de nuevo con menos archivos.', 'error');
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error processing RUC file(s):', error);
+    let errorMessage = 'Error al procesar los archivos RUC';
+    
+    if (error.message.includes('conectar al servicio')) {
+      errorMessage = 'Servicio de procesamiento no disponible. Contacte al administrador.';
+    } else if (error.message.includes('demasiado grande')) {
+      errorMessage = 'Uno o más archivos son demasiado grandes para procesar.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    showNotification(errorMessage, 'error');
+  } finally {
+    setRucProcessing(false);
+    // Limpiar el input file para permitir cargar el mismo archivo nuevamente
+    e.target.value = '';
+  }
+};
 
   const addLegalRepresentative = () => {
     setFormData(prev => ({
@@ -371,11 +593,13 @@ const ClientRegistrationForm = () => {
     <div className="space-y-6 animate-fade-in">
       {/* Notification */}
       {notification && (
-        <div className={`p-4 rounded-lg flex items-center space-x-3 ${
-          notification.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
+  <div className={`p-4 rounded-lg flex items-center space-x-3 ${
+    notification.type === 'success' 
+      ? 'bg-green-50 text-green-800 border border-green-200' 
+      : notification.type === 'info'
+      ? 'bg-blue-50 text-blue-800 border border-blue-200'
+      : 'bg-red-50 text-red-800 border border-red-200'
+  }`}>
           {notification.type === 'success' ? (
             <CheckCircle className="w-5 h-5" />
           ) : (
@@ -421,9 +645,11 @@ const ClientRegistrationForm = () => {
                   <input
                     type="file"
                     accept=".pdf"
+                    multiple={true}
                     onChange={handleRucFileUpload}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     disabled={rucProcessing}
+                    id="rucFilesInput"
                   />
                   <button
                     type="button"
@@ -438,10 +664,25 @@ const ClientRegistrationForm = () => {
                     ) : (
                       <>
                         <Upload className="w-4 h-4" />
-                        <span>Subir Ficha RUC</span>
+                        <span>Subir Fichas RUC</span>
                       </>
                     )}
                   </button>
+
+                  {/* Indicador de múltiples archivos */}
+                  {!rucProcessing && (
+                    <span className="absolute left-0 -bottom-8 text-xs text-gray-500">
+                      Puedes seleccionar hasta 5 archivos PDF
+                    </span>
+                  )}
+                  {rucProcessing && (
+                    <span className="absolute left-0 -bottom-6 text-xs text-blue-600 animate-pulse flex items-center">
+                      <div className="w-2 h-2 mr-1 rounded-full bg-blue-600 animate-ping"></div>
+                      Extrayendo datos con IA...
+                    </span>
+                  )}
+
+
                 </div>
               </div>
               
@@ -508,7 +749,16 @@ const ClientRegistrationForm = () => {
                   <label htmlFor="taxpayerType" className="block text-sm font-medium text-gray-700 mb-2">
                     Tipo de Contribuyente
                   </label>
-                  <select
+                  <input
+                    id="taxpayerType"
+                    name="taxpayerType"
+                    type="text"
+                    value={formData.taxpayerType}
+                    onChange={handleChange}
+                    className="input"
+                    placeholder="Ingresa el tipo de contribuyente"
+                  />
+                  {/* <select
                     id="taxpayerType"
                     name="taxpayerType"
                     value={formData.taxpayerType}
@@ -519,7 +769,7 @@ const ClientRegistrationForm = () => {
                     <option value="PERSONA_JURIDICA">Persona Jurídica</option>
                     <option value="PERSONA_NATURAL">Persona Natural</option>
                     <option value="EMPRESA_UNIPERSONAL">Empresa Unipersonal</option>
-                  </select>
+                  </select> */}
                 </div>
 
                 <div>

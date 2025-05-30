@@ -83,6 +83,7 @@ export const usersApi = {
   getById: (id) => api.get(`users/${id}`),
   getByType: (type) => api.get(`users/type/${type}`),
   create: (userData) => api.post('users', userData),
+  autoRegister: (userData) => api.post('users/auto-register', userData),
   update: (id, userData) => api.put(`users/${id}`, userData),
   delete: (id) => api.delete(`users/${id}`),
   enable: (id) => api.put(`users/${id}/enable`),
