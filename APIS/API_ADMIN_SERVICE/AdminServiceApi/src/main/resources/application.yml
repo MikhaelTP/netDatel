@@ -90,6 +90,7 @@ app:
 
   mailersend:
     api-token: mlsn.7bbb81dde6b3dc0409280867b903076549de7b57c9202a6e79553a4c09f59894
+  #  from-email: MS_7CoMyB@test-3m5jgro8nqmgdpyo.mlsender.net
     from-email: test@test-3m5jgro8nqmgdpyo.mlsender.net
     from-name: Admin Service Test
 
@@ -122,9 +123,9 @@ feign:
         loggerLevel: basic
       # ✅ CONFIGURACIÓN ESPECÍFICA PARA MAILERSEND
       mailersend-api:
-        connectTimeout: 10000
-        readTimeout: 15000
-        loggerLevel: full
+        connectTimeout: 15000
+        readTimeout: 30000  # ✅ Aumentar timeout
+        loggerLevel: full   # ✅ Ver toda la comunicación
         errorDecoder: com.netdatel.adminserviceapi.service.integration.MailerSendErrorDecoder
   httpclient:
     enabled: true
@@ -171,6 +172,8 @@ springdoc:
 # Configuracion de logging
 logging:
   level:
+    com.netdatel.adminserviceapi.service.integration: DEBUG
+    feign.Logger: DEBUG
     root: INFO
     com.netdatel: ${LOG_LEVEL:INFO}
     org.springframework.web: INFO

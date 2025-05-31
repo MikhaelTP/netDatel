@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 )
 public interface MailerSendClient {
 
-    @PostMapping(value = "api/email", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "email", consumes = MediaType.APPLICATION_JSON_VALUE)
     MailerSendResponse sendEmail(@RequestBody MailerSendRequest request);
 }
 

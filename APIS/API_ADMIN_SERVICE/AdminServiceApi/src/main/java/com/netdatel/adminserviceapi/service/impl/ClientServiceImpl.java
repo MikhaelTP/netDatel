@@ -1,11 +1,13 @@
 package com.netdatel.adminserviceapi.service.impl;
 
+import com.netdatel.adminserviceapi.api.IdentityServiceClient;
 import com.netdatel.adminserviceapi.dto.event.ClientCreatedEvent;
 import com.netdatel.adminserviceapi.dto.event.ClientStatusChangedEvent;
 import com.netdatel.adminserviceapi.dto.request.ClientRequest;
 import com.netdatel.adminserviceapi.dto.request.LegalRepresentativeRequest;
 import com.netdatel.adminserviceapi.dto.request.NotificationRequest;
 import com.netdatel.adminserviceapi.dto.response.ClientResponse;
+import com.netdatel.adminserviceapi.dto.response.UserCredentialsResponse;
 import com.netdatel.adminserviceapi.entity.Client;
 import com.netdatel.adminserviceapi.entity.ClientAdministrator;
 import com.netdatel.adminserviceapi.entity.ClientHistory;
@@ -26,6 +28,7 @@ import com.netdatel.adminserviceapi.service.WorkersRegistrationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,6 +60,9 @@ public class ClientServiceImpl implements ClientService {
     private final NotificationService notificationService;
 
     private final ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private IdentityServiceClient identityServiceClient; // Cliente REST para IDENTITY
 
     @Override
     @Transactional
@@ -340,20 +346,29 @@ public class ClientServiceImpl implements ClientService {
         }
     }
 
+
     private void sendAdministratorNotification(ClientAdministrator administrator, Client client, Integer userId) {
         try {
+            // 1. Llamar al servicio IDENTITY para obtener las credenciales temporales
+            UserCredentialsResponse credentials = identityServiceClient.getUserCredentials(administrator.getEmail());
+
             NotificationRequest notification = new NotificationRequest();
             notification.setClientId(client.getId());
             notification.setTargetType(TargetType.ADMINISTRATOR);
             notification.setTargetId(administrator.getId());
             notification.setNotificationType("ADMIN_REGISTRATION");
-            notification.setSubject("Invitación para completar registro de administrador");
+            notification.setSubject("Credenciales de acceso - " + client.getBusinessName());
 
-            String content = "<h2>Bienvenido al sistema</h2>" +
+            String content = "<h2>Bienvenido al sistema Netdatel</h2>" +
                     "<p>Estimado administrador,</p>" +
                     "<p>Ha sido registrado como administrador de <strong>" + client.getBusinessName() + "</strong>.</p>" +
-                    "<p>Para completar su registro y acceder al sistema, haga clic en el siguiente enlace:</p>" +
-                    "<p><a href='[REGISTRATION_LINK]' style='background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;'>Completar Registro</a></p>" +
+                    "<p><strong>Sus credenciales temporales son:</strong></p>" +
+                    "<div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;'>" +
+                    "<p><strong>Usuario:</strong> " + credentials.getUsername() + "</p>" +
+                    "<p><strong>Contraseña temporal:</strong> " + credentials.getTemporaryPassword() + "</p>" +
+                    "</div>" +
+                    "<p><strong>IMPORTANTE:</strong> Por favor, cambie su contraseña en el primer inicio de sesión.</p>" +
+                    "<p><a href='[LOGIN_LINK]' style='background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;'>Iniciar Sesión</a></p>" +
                     "<br>" +
                     "<p><strong>Datos de la empresa:</strong></p>" +
                     "<ul>" +
@@ -362,21 +377,21 @@ public class ClientServiceImpl implements ClientService {
                     "<li>Nombre Comercial: " + (client.getCommercialName() != null ? client.getCommercialName() : "N/A") + "</li>" +
                     "</ul>" +
                     "<br>" +
-                    "<p>Saludos cordiales,<br>El equipo de soporte</p>";
+                    "<p>Saludos cordiales,<br>El equipo de Netdatel</p>";
 
             notification.setContent(content);
-
             notificationService.sendNotification(notification, userId);
 
-            // Actualizar estado de notificación
             administrator.setNotificationSent(true);
             administrator.setNotificationDate(LocalDateTime.now());
             clientAdministratorRepository.save(administrator);
 
-            log.info("Notificación enviada correctamente a administrador: {}", administrator.getEmail());
+            log.info("Notificación con credenciales enviada a administrador: {}", administrator.getEmail());
 
         } catch (Exception e) {
             log.error("Error enviando notificación a administrador {}: {}", administrator.getEmail(), e.getMessage(), e);
         }
     }
+
+
 }
