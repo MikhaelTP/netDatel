@@ -1,5 +1,7 @@
 package com.netdatel.identityserviceapi.service;
 
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterRequest;
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterResponse;
 import com.netdatel.identityserviceapi.domain.dto.UserDto;
 import com.netdatel.identityserviceapi.domain.entity.User;
 import org.springframework.data.domain.Page;
@@ -47,4 +49,11 @@ public interface UserService extends UserDetailsService {
      * @param userId ID of the user to update
      */
     void updateLastLogin(Integer userId);
+
+    /**
+     * Auto register user with generated username and password
+     * @param request AutoRegisterRequest containing email and other user data
+     * @return AutoRegisterResponse with generated credentials
+     */
+    AutoRegisterResponse autoRegisterUser(AutoRegisterRequest request);
 }

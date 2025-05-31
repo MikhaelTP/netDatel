@@ -76,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
 
             // Get roles and permissions for response
             List<String> roles = user.getRoles().stream()
-                    .map(role -> "ROLE_" + role.getName())
+                    .map(role -> role.getName())
                     .collect(Collectors.toList());
 
             List<String> permissions = authentication.getAuthorities().stream()
@@ -143,7 +143,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Get roles and permissions for response
         List<String> roles = user.getRoles().stream()
-                .map(role -> "ROLE_" + role.getName())
+                .map(role -> role.getName())
                 .collect(Collectors.toList());
 
         List<String> permissions = authentication.getAuthorities().stream()

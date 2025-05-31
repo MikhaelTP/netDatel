@@ -64,15 +64,29 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Public endpoints
+                        // Public endpoints - CORREGIR LAS RUTAS
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()  // CAMBIAR DE /auth/** a /api/auth/**
+                        .requestMatchers("/api/test/**").permitAll()  // TEMPORAL para testing
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        // Secured endpoints
-                        .requestMatchers("/users/**").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/roles/**").hasAnyRole("SUPER_ADMIN", "CLIENT_ADMIN")
-                        .requestMatchers("/permissions/**").hasRole("SUPER_ADMIN")
+
+                        // TEMPORALMENTE: Permitir todo para debuggear
+                        /*
+                                .requestMatchers("/users/**").permitAll()  // <-- TEMPORAL PARA TESTING
+                        .requestMatchers("/roles/**").permitAll()   // <-- TEMPORAL PARA TESTING
+                        .requestMatchers("/permissions/**").permitAll() // <-- TEMPORAL PARA TES
+
+                         */
+
+
+                        // Secured endpoints - CORREGIR LAS RUTAS
+                        .requestMatchers("/api/users/**").hasAuthority("ROLE_SUPER_ADMIN")
+                        .requestMatchers("/api/roles/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CLIENT_ADMIN")
+                        .requestMatchers("/api/permissions/**").hasAuthority("ROLE_SUPER_ADMIN")
+                        .requestMatchers("/api/audit/**").hasAnyRole("SUPER_ADMIN", "CLIENT_ADMIN")
                         .anyRequest().authenticated()
+
+
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
@@ -95,14 +109,14 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*")); // Configura para entornos de producción
+        configuration.setAllowedOrigins(List.of("https://localhost:5173", "http://localhost:5173")); // Más seguro que "*"
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setExposedHeaders(List.of("Content-Disposition"));
+        configuration.setExposedHeaders(Arrays.asList("Content-Disposition", "Authorization"));
+        configuration.setAllowCredentials(true); // Importante para JWT
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

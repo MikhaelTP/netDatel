@@ -1,12 +1,17 @@
 package com.netdatel.identityserviceapi.domain.entity;
 
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Entity
@@ -34,9 +39,11 @@ public class AuditLog {
     private String entityId;
 
     @Column(name = "old_values", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String oldValues;
 
-    @Column(name = "new_values", columnDefinition = "jsonb")
+    @Column(name = "new_values",  columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String newValues;
 
     @Column(name = "ip_address", length = 45)

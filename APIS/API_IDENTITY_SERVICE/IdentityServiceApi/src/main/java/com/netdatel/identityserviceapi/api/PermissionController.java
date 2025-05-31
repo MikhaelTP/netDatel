@@ -19,7 +19,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/permissions")
+@RequestMapping("/api/permissions")
 @RequiredArgsConstructor
 @Tag(name = "Permissions", description = "Permission management API")
 @SecurityRequirement(name = "bearerAuth")

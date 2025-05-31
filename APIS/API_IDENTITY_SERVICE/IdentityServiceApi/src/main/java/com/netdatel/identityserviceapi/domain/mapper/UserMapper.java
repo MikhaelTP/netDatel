@@ -19,12 +19,16 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "lastLogin", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     User toEntity(UserDto userDto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)  // CRÍTICO: No mapear passwordHash en update
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "lastLogin", ignore = true)
+    @Mapping(target = "enabled", ignore = true)  // NUEVO: Preservar enabled
+    @Mapping(target = "accountNonLocked", ignore = true)  // NUEVO: Preservar accountNonLocked
+    @Mapping(target = "roles", ignore = true)
     void updateEntityFromDto(UserDto userDto, @MappingTarget User user);
 }

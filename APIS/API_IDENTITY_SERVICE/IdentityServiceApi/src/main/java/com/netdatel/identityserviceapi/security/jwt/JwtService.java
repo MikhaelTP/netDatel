@@ -5,10 +5,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,20 +30,29 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${security.jwt.token.secret-key}")
+    // Agregar esta línea al inicio de la clase
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
+
+    @Value("${app.security.jwt.secret-key}")
     private String secretKey;
 
-    @Value("${security.jwt.token.expiration}")
+    @Value("${app.security.jwt.expiration}")
     private long tokenExpiration;
 
-    @Value("${security.jwt.token.refresh-expiration}")
+    @Value("${app.security.jwt.token.refresh-expiration}")
     private long refreshTokenExpiration;
+
+    @Value("${app.security.jwt.issuer}")
+    private String issuer;
 
     private Key key;
 
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+        logger.info("🔑 JWT Secret Key: {}", secretKey.substring(0, 10) + "...");
+        logger.info("🏢 JWT Issuer: {}", issuer);
     }
 
     public String generateToken(org.springframework.security.core.Authentication authentication, User user) {
@@ -56,7 +68,7 @@ public class JwtService {
 
         // Extract roles for easier frontend access
         List<String> roles = user.getRoles().stream()
-                .map(role -> "ROLE_" + role.getName())
+                .map(role -> role.getName())
                 .collect(Collectors.toList());
         claims.put("roles", roles);
 
@@ -89,7 +101,7 @@ public class JwtService {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
-                .setIssuer("identity-service")
+                .setIssuer("admin-service")
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + tokenExpiration))
                 .signWith(key, SignatureAlgorithm.HS512)

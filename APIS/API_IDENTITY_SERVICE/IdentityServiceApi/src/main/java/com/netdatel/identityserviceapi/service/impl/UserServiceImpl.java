@@ -1,5 +1,8 @@
 package com.netdatel.identityserviceapi.service.impl;
 
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterRequest;
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterResponse;
+import com.netdatel.identityserviceapi.domain.dto.RoleDto;
 import com.netdatel.identityserviceapi.domain.dto.UserDto;
 import com.netdatel.identityserviceapi.domain.entity.Role;
 import com.netdatel.identityserviceapi.domain.entity.User;
@@ -21,6 +24,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,6 +39,10 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final int PASSWORD_LENGTH = 8;
+
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -53,7 +61,7 @@ public class UserServiceImpl implements UserService {
 
         // Add roles as authorities
         user.getRoles().forEach(role -> {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+            authorities.add(new SimpleGrantedAuthority(role.getName()));
 
             // Add permissions from roles as authorities
             role.getPermissions().forEach(permission ->
@@ -84,18 +92,109 @@ public class UserServiceImpl implements UserService {
 
         User user = userMapper.toEntity(userDto);
         user.setPasswordHash(passwordEncoder.encode(userDto.getPassword()));
+        user.setEnabled(true);
+        user.setAccountNonLocked(true);
+        // Inicializar la colección de roles si es null
+        if (user.getRoles() == null) {
+            user.setRoles(new HashSet<>());
+        }
 
-        // Assign default role if no roles are specified
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+        // Asignar roles explícitamente desde los IDs proporcionados en el DTO
+        if (userDto.getRoles() != null && !userDto.getRoles().isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            for (RoleDto roleDto : userDto.getRoles()) {
+                if (roleDto.getId() != null) {
+                    Role role = roleRepository.findById(roleDto.getId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleDto.getId()));
+                    roles.add(role);
+                }
+            }
+            user.setRoles(roles);
+
+            // Añadir logs para depuración
+            log.debug("Asignados {} roles al usuario {}", roles.size(), userDto.getUsername());
+        }
+
+        // Si después de todo no se asignaron roles, asignar rol predeterminado
+        if (user.getRoles().isEmpty()) {
             Optional<Role> defaultRole = roleRepository.findByIsDefaultTrue();
-            defaultRole.ifPresent(role -> user.setRoles(Set.of(role)));
+            if (defaultRole.isPresent()) {
+                user.getRoles().add(defaultRole.get());
+                log.debug("Asignado rol predeterminado {} al usuario {}", defaultRole.get().getName(), userDto.getUsername());
+            } else {
+                log.warn("No se encontró un rol predeterminado para asignar al usuario {}", userDto.getUsername());
+            }
         }
 
         User savedUser = userRepository.save(user);
+        // Añadir log para confirmar los roles asignados
+        log.info("Usuario creado: {} con {} roles", savedUser.getUsername(), savedUser.getRoles().size());
+
         auditService.logEvent("USER_CREATED", "user", savedUser.getId().toString(), null, userMapper.toDto(savedUser));
 
-        log.info("Created new user: {}", savedUser.getUsername());
         return userMapper.toDto(savedUser);
+    }
+
+
+    @Override
+    @Transactional
+    public AutoRegisterResponse autoRegisterUser(AutoRegisterRequest request) {
+        // Validate email doesn't exist
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        // Generate username from email
+        String baseUsername = generateUsernameFromEmail(request.getEmail());
+        String uniqueUsername = generateUniqueUsername(baseUsername);
+
+        // Generate random password
+        String temporaryPassword = generateRandomPassword();
+
+        // Create user entity
+        User user = User.builder()
+                .username(uniqueUsername)
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(temporaryPassword))
+                .userType(request.getUserType())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .attributes(request.getAttributes())
+                .enabled(true)
+                .accountNonLocked(true)
+                .build();
+
+        // Assign roles
+        Set<Role> roles = new HashSet<>();
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            for (AutoRegisterRequest.RoleAssignment roleAssignment : request.getRoles()) {
+                Role role = roleRepository.findById(roleAssignment.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleAssignment.getId()));
+                roles.add(role);
+            }
+        } else {
+            // Assign default role if no roles specified
+            Optional<Role> defaultRole = roleRepository.findByIsDefaultTrue();
+            defaultRole.ifPresent(roles::add);
+        }
+        user.setRoles(roles);
+
+        // Save user
+        User savedUser = userRepository.save(user);
+
+        // Audit log
+        auditService.logEvent("USER_AUTO_REGISTERED", "user", savedUser.getId().toString(),
+                null, userMapper.toDto(savedUser));
+
+        log.info("Auto-registered new user: {} with email: {}", savedUser.getUsername(), savedUser.getEmail());
+
+        return AutoRegisterResponse.success(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                temporaryPassword,
+                savedUser.getUserType().name()
+        );
     }
 
     @Override
@@ -119,18 +218,56 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        userMapper.updateEntityFromDto(userDto, existingUser);
+        // IMPORTANTE: Guardar valores críticos ANTES de cualquier mapeo
+        String originalPasswordHash = existingUser.getPasswordHash();
+        boolean originalEnabled = existingUser.isEnabled();
+        boolean originalAccountNonLocked = existingUser.isAccountNonLocked();
+        Set<Role> originalRoles = new HashSet<>(existingUser.getRoles());
+        LocalDateTime originalCreatedAt = existingUser.getCreatedAt();
+        LocalDateTime originalLastLogin = existingUser.getLastLogin();
 
-        // Update password if provided
-        if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
+        // Actualizar solo los campos básicos permitidos
+        if (userDto.getUsername() != null) {
+            existingUser.setUsername(userDto.getUsername());
+        }
+        if (userDto.getEmail() != null) {
+            existingUser.setEmail(userDto.getEmail());
+        }
+        if (userDto.getFirstName() != null) {
+            existingUser.setFirstName(userDto.getFirstName());
+        }
+        if (userDto.getLastName() != null) {
+            existingUser.setLastName(userDto.getLastName());
+        }
+        if (userDto.getUserType() != null) {
+            existingUser.setUserType(userDto.getUserType());
+        }
+        if (userDto.getAttributes() != null) {
+            existingUser.setAttributes(userDto.getAttributes());
+        }
+
+        // RESTAURAR valores críticos que NO deben cambiar con update básico
+        existingUser.setPasswordHash(originalPasswordHash);
+        existingUser.setEnabled(originalEnabled);
+        existingUser.setAccountNonLocked(originalAccountNonLocked);
+        existingUser.setRoles(originalRoles);
+        existingUser.setCreatedAt(originalCreatedAt);
+        existingUser.setLastLogin(originalLastLogin);
+
+        // Solo actualizar password si se proporciona uno nuevo
+        if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             existingUser.setPasswordHash(passwordEncoder.encode(userDto.getPassword()));
+            log.info("Password updated for user: {}", existingUser.getUsername());
         }
 
         User updatedUser = userRepository.save(existingUser);
 
-        auditService.logEvent("USER_UPDATED", "user", updatedUser.getId().toString(), oldUserState, userMapper.toDto(updatedUser));
+        auditService.logEvent("USER_UPDATED", "user", updatedUser.getId().toString(),
+                oldUserState, userMapper.toDto(updatedUser));
 
-        log.info("Updated user: {}", updatedUser.getUsername());
+        log.info("Updated user: {} (enabled: {}, roles: {})",
+                updatedUser.getUsername(), updatedUser.isEnabled(), updatedUser.getRoles().size());
+
         return userMapper.toDto(updatedUser);
     }
 
@@ -297,5 +434,70 @@ public class UserServiceImpl implements UserService {
     public void updateLastLogin(Integer userId) {
         userRepository.updateLastLogin(userId, LocalDateTime.now());
         log.debug("Updated last login time for user ID: {}", userId);
+    }
+
+    // MÉTODOS AUXILIARES PARA AUTO-REGISTRO
+
+    /**
+     * Generates a base username from email by removing domain and common extensions
+     */
+    private String generateUsernameFromEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+
+        String localPart = email.split("@")[0];
+
+        // Clean up the local part - remove dots, plus signs, etc.
+        String cleanUsername = localPart
+                .replaceAll("[^a-zA-Z0-9]", "") // Remove special characters
+                .toLowerCase();
+
+        // Ensure minimum length
+        if (cleanUsername.length() < 3) {
+            cleanUsername = cleanUsername + "user";
+        }
+
+        // Ensure maximum length
+        if (cleanUsername.length() > 45) {
+            cleanUsername = cleanUsername.substring(0, 45);
+        }
+
+        return cleanUsername;
+    }
+
+    /**
+     * Generates a unique username by adding suffixes if needed
+     */
+    private String generateUniqueUsername(String baseUsername) {
+        String candidateUsername = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(candidateUsername)) {
+            candidateUsername = baseUsername + counter;
+            counter++;
+
+            // Prevent infinite loop
+            if (counter > 9999) {
+                candidateUsername = baseUsername + UUID.randomUUID().toString().substring(0, 4);
+                break;
+            }
+        }
+
+        return candidateUsername;
+    }
+
+    /**
+     * Generates a random 8-digit password
+     */
+    private String generateRandomPassword() {
+        StringBuilder password = new StringBuilder();
+
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            int digit = RANDOM.nextInt(10); // 0-9
+            password.append(digit);
+        }
+
+        return password.toString();
     }
 }

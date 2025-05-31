@@ -1,5 +1,7 @@
 package com.netdatel.identityserviceapi.api;
 
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterRequest;
+import com.netdatel.identityserviceapi.domain.dto.AutoRegisterResponse;
 import com.netdatel.identityserviceapi.domain.dto.UserDto;
 import com.netdatel.identityserviceapi.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,7 +21,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Tag(name = "Users", description = "User management API")
 @SecurityRequirement(name = "bearerAuth")
@@ -67,6 +69,16 @@ public class UserController {
             @Valid @RequestBody UserDto userDto) {
         log.debug("REST request to update User : {}", id);
         return ResponseEntity.ok(userService.updateUser(id, userDto));
+    }
+
+    // NUEVO ENDPOINT DE AUTO-REGISTRO
+    @PostMapping("/auto-register")
+    @Operation(summary = "Auto register user with generated credentials",
+            description = "Creates a user with auto-generated username and password based on email")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('CLIENT_ADMIN')")
+    public ResponseEntity<AutoRegisterResponse> autoRegisterUser(@Valid @RequestBody AutoRegisterRequest request) {
+        log.debug("REST request to auto-register User with email: {}", request.getEmail());
+        return ResponseEntity.ok(userService.autoRegisterUser(request));
     }
 
     @DeleteMapping("/{id}")
